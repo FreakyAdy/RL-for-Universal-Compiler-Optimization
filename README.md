@@ -108,26 +108,20 @@ Traditional Compiler Optimization         RL-UCO Approach
 
 ### Hardware Profiling Capabilities
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║                     Platform-Specific Profiling                            ║
-╠═══════════════╦══════════════╦═════════════════╦══════════════════════════╣
-║   Platform    ║ Wall Time    ║ Energy          ║ Status                   ║
-╠═══════════════╬══════════════╬═════════════════╬══════════════════════════╣
-║ x86-64        ║ perf         ║ Intel RAPL      ║ ✓ Production Ready       ║
-║ ARM64         ║ perf         ║ SPE/sysfs       ║ ✓ Supported              ║
-║ NVIDIA CUDA   ║ CUDA API     ║ NVML            ║ ✓ GPU-optimized          ║
-║ Windows       ║ QueryPC      ║ N/A (time only) ║ ◐ Partial (Dev mode)     ║
-║ macOS         ║ mach_time    ║ N/A (time only) ║ ◐ Time-based rewards     ║
-╚═══════════════╩══════════════╩═════════════════╩══════════════════════════╝
+| Platform | Wall Time | Energy | Status |
+|----------|-----------|--------|--------|
+| **x86-64** | perf | Intel RAPL | ✓ Production Ready |
+| **ARM64** | perf | SPE/sysfs | ✓ Supported |
+| **NVIDIA CUDA** | CUDA API | NVML | ✓ GPU-optimized |
+| **Windows** | QueryPC | N/A (time only) | ◐ Partial (Dev mode) |
+| **macOS** | mach_time | N/A (time only) | ◐ Time-based rewards |
 
 ### Supported IR & Frameworks
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║ IR Type │ Framework      │ Status            │ Details                    ║
-╠═════════╬════════════════╬═══════════════════╬════════════════════════════╣
-║ LLVM IR │ LLVM 18+       │ ✓ Primary        │ 100+ passes, NPM support   ║
-║ MLIR    │ MLIR (dialect) │ ◑ Experimental   │ GPU kernels, unified graph ║
-╚════════════════════════════════════════════════════════════════════════════╝
+| IR Type | Framework | Status | Details |
+|---------|-----------|--------|---------|
+| **LLVM IR** | LLVM 18+ | ✓ Primary | 100+ passes, NPM support |
+| **MLIR** | MLIR (dialect) | ◑ Experimental | GPU kernels, unified graph |
 
 ### Reward Function Composition
 
@@ -514,48 +508,38 @@ All configuration is controlled via environment variables or [rl_uco/config.py](
 
 ### Key Parameters
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║ REWARD CONFIGURATION                                                       ║
-╠════════════════════════════════════════════════════════════════════════════╣
-║                                                                            ║
-║  RL_UCO_W_TIME=0.7           ─┐                                           ║
-║                               ├─► Weight distribution in reward            ║
-║  RL_UCO_W_ENERGY=0.3         ─┘   (must sum to 1.0)                       ║
-║                                                                            ║
-║  RL_UCO_FAILURE_REWARD=-10.0      Penalty for failed compilations         ║
-║                                                                            ║
-╚════════════════════════════════════════════════════════════════════════════╝
+**Reward Configuration:**
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║ EXECUTION CONSTRAINTS                                                      ║
-╠════════════════════════════════════════════════════════════════════════════╣
-║                                                                            ║
-║  RL_UCO_MAX_PASS_STEPS=12         Max passes per sequence (episode length) ║
-║  RL_UCO_COMPILE_TIMEOUT=120       Compilation timeout (seconds)            ║
-║  RL_UCO_RUN_TIMEOUT=30            Execution timeout (seconds)              ║
-║  RL_UCO_RUN_ITERATIONS=100000     Microbenchmark loop count                ║
-║  RL_UCO_PROFILE_RUNS=5            Profiling runs (median taken)            ║
-║                                                                            ║
-╚════════════════════════════════════════════════════════════════════════════╝
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RL_UCO_W_TIME` | `0.7` | Weight for wall-time in reward (must sum to 1.0 with energy) |
+| `RL_UCO_W_ENERGY` | `0.3` | Weight for energy in reward (must sum to 1.0 with time) |
+| `RL_UCO_FAILURE_REWARD` | `-10.0` | Penalty for failed compilations |
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║ CORPUS FILTERS                                                             ║
-╠════════════════════════════════════════════════════════════════════════════╣
-║                                                                            ║
-║  RL_UCO_MAX_IR_INSTRUCTIONS=5000  Max IR instructions per function         ║
-║  RL_UCO_MAX_FUNCS_PER_FILE=32     Max functions extracted per file         ║
-║                                                                            ║
-╚════════════════════════════════════════════════════════════════════════════╝
+**Execution Constraints:**
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║ MODEL ARCHITECTURE                                                         ║
-╠════════════════════════════════════════════════════════════════════════════╣
-║                                                                            ║
-║  ISA_EMBED_DIM=32                 ISA embedding dimension                  ║
-║  GRAPH_HIDDEN_DIM=256             Graph encoder hidden size                ║
-║  GRAPH_NUM_LAYERS=4               GNN stacking depth                       ║
-║                                                                            ║
-╚════════════════════════════════════════════════════════════════════════════╝
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RL_UCO_MAX_PASS_STEPS` | `12` | Maximum passes per sequence (episode length) |
+| `RL_UCO_COMPILE_TIMEOUT` | `120` | Compilation timeout (seconds) |
+| `RL_UCO_RUN_TIMEOUT` | `30` | Execution timeout (seconds) |
+| `RL_UCO_RUN_ITERATIONS` | `100000` | Microbenchmark loop count |
+| `RL_UCO_PROFILE_RUNS` | `5` | Profiling runs (median taken) |
+
+**Corpus Filters:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RL_UCO_MAX_IR_INSTRUCTIONS` | `5000` | Max IR instructions per function |
+| `RL_UCO_MAX_FUNCS_PER_FILE` | `32` | Max functions extracted per file |
+
+**Model Architecture:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ISA_EMBED_DIM` | `32` | ISA embedding dimension |
+| `GRAPH_HIDDEN_DIM` | `256` | Graph encoder hidden size |
+| `GRAPH_NUM_LAYERS` | `4` | GNN stacking depth |
 
 ### Configuration Examples
 
@@ -902,18 +886,12 @@ RL-for-Universal-Compiler-Optimization/
 
 Comprehensive guides for each component:
 
-┌────────────────────────────────────────────────────────────────────────────┐
-│ Document                    │ Coverage                                     │
-├────────────────────────────────────────────────────────────────────────────┤
-│ [Architecture](docs/architecture.md)         │ System design, data flow,    │
-│                                 │ IR strategies, ISA conditioning          │
-│ [Dataset Schema](docs/dataset_schema.md)     │ Parquet specification, field │
-│                                 │ descriptions, versioning scheme          │
-│ [Deployment](docs/deployment.md)             │ Production inference, TorchScript  │
-│                                 │ export, external driver, CI/batch        │
-│ [Hardware Setup](docs/hardware_setup.md)     │ x86 RAPL, ARM, CUDA, Windows │
-│                                 │ profiling configuration                  │
-└────────────────────────────────────────────────────────────────────────────┘
+| Document | Coverage |
+|----------|----------|
+| [Architecture](docs/architecture.md) | System design, data flow, IR strategies, ISA conditioning |
+| [Dataset Schema](docs/dataset_schema.md) | Parquet specification, field descriptions, versioning scheme |
+| [Deployment](docs/deployment.md) | Production inference, TorchScript export, external driver, CI/batch |
+| [Hardware Setup](docs/hardware_setup.md) | x86 RAPL, ARM, CUDA, Windows profiling configuration |
 
 ---
 
@@ -968,25 +946,26 @@ which llvm-diff    # Should return path
 
 **Solutions:**
 
-┌────────────────────────────────────────────────────────────────────────────┐
-│ Option A: Add LLVM to PATH (Linux/macOS)                                  │
-├────────────────────────────────────────────────────────────────────────────┤
-│ export PATH="/path/to/llvm-18/bin:$PATH"                                   │
-│ export LD_LIBRARY_PATH="/path/to/llvm-18/lib:$LD_LIBRARY_PATH"            │
-│                                                                            │
-│ Option B: Install via package manager                                     │
-├────────────────────────────────────────────────────────────────────────────┤
-│ # Ubuntu/Debian                                                            │
-│ sudo apt-get install -y llvm-18                                            │
-│                                                                            │
-│ # macOS (Homebrew)                                                         │
-│ brew install llvm@18                                                       │
-│                                                                            │
-│ Option C: Use Docker (Recommended)                                         │
-├────────────────────────────────────────────────────────────────────────────┤
-│ cd infra/docker && docker compose run --rm rl-uco-dev bash               │
-│ # Inside container, clang/opt/llvm-diff already on PATH                   │
-└────────────────────────────────────────────────────────────────────────────┘
+**Option A: Add LLVM to PATH (Linux/macOS)**
+```bash
+export PATH="/path/to/llvm-18/bin:$PATH"
+export LD_LIBRARY_PATH="/path/to/llvm-18/lib:$LD_LIBRARY_PATH"
+```
+
+**Option B: Install via package manager**
+```bash
+# Ubuntu/Debian
+sudo apt-get install -y llvm-18
+
+# macOS (Homebrew)
+brew install llvm@18
+```
+
+**Option C: Use Docker (Recommended)**
+```bash
+cd infra/docker && docker compose run --rm rl-uco-dev bash
+# Inside container, clang/opt/llvm-diff already on PATH
+```
 
 ---
 
@@ -996,58 +975,52 @@ which llvm-diff    # Should return path
 
 **Platform-Specific Diagnostics:**
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║ x86-64 (Intel RAPL)                                                        ║
-╠════════════════════════════════════════════════════════════════════════════╣
-║                                                                            ║
-║ Check 1: RAPL readable                                                    ║
-║   $ cat /sys/class/powercap/intel-rapl:0/energy_uj                       ║
-║   ✓ Should show energy in microjoules                                     ║
-║                                                                            ║
-║ Check 2: msr module loaded                                                ║
-║   $ lsmod | grep msr                                                      ║
-║   $ sudo modprobe msr  # if not loaded                                    ║
-║                                                                            ║
-║ Check 3: Permissions fixed                                                ║
-║   $ sudo chmod +r /sys/class/powercap/intel-rapl:0/energy_uj             ║
-║   $ sudo chmod +r /sys/class/powercap/intel-rapl:1/energy_uj             ║
-║                                                                            ║
-╚════════════════════════════════════════════════════════════════════════════╝
+**x86-64 (Intel RAPL)**
+- Check 1: RAPL readable
+  ```bash
+  $ cat /sys/class/powercap/intel-rapl:0/energy_uj
+  # Should show energy in microjoules
+  ```
+- Check 2: msr module loaded
+  ```bash
+  $ lsmod | grep msr
+  $ sudo modprobe msr  # if not loaded
+  ```
+- Check 3: Permissions fixed
+  ```bash
+  $ sudo chmod +r /sys/class/powercap/intel-rapl:0/energy_uj
+  $ sudo chmod +r /sys/class/powercap/intel-rapl:1/energy_uj
+  ```
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║ ARM64 (Platform Energy Counters)                                          ║
-╠════════════════════════════════════════════════════════════════════════════╣
-║                                                                            ║
-║ Check 1: SPE (Statistical Profiling Extension) available                 ║
-║   $ perf list | grep spe                                                  ║
-║   ✓ Should show energy_* events if supported                              ║
-║                                                                            ║
-║ Status: Falls back gracefully to time-only if unavailable                ║
-║         Warnings printed to stderr                                        ║
-║                                                                            ║
-╚════════════════════════════════════════════════════════════════════════════╝
+**ARM64 (Platform Energy Counters)**
+- Check 1: SPE (Statistical Profiling Extension) available
+  ```bash
+  $ perf list | grep spe
+  # Should show energy_* events if supported
+  ```
+- Status: Falls back gracefully to time-only if unavailable (warnings printed to stderr)
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║ NVIDIA CUDA (NVML)                                                         ║
-╠════════════════════════════════════════════════════════════════════════════╣
-║                                                                            ║
-║ Check 1: Driver installed                                                 ║
-║   $ nvidia-smi                                                             ║
-║   ✓ Should show GPU info                                                  ║
-║                                                                            ║
-║ Check 2: CUDA installed                                                   ║
-║   $ nvcc --version  # CUDA Toolkit                                        ║
-║   ✓ Should show CUDA version >= 12.0                                     ║
-║                                                                            ║
-║ Check 3: pynvml installed                                                 ║
-║   $ pip install -e ".[gpu]"                                              ║
-║   $ python -c "import pynvml; print('OK')"                               ║
-║                                                                            ║
-║ Check 4: GPU visibility                                                   ║
-║   $ CUDA_VISIBLE_DEVICES=0 python -c "import torch; print(torch.cuda.is_available())" │
-║   ✓ Should print True                                                     ║
-║                                                                            ║
-╚════════════════════════════════════════════════════════════════════════════╝
+**NVIDIA CUDA (NVML)**
+- Check 1: Driver installed
+  ```bash
+  $ nvidia-smi
+  # Should show GPU info
+  ```
+- Check 2: CUDA installed
+  ```bash
+  $ nvcc --version  # CUDA Toolkit
+  # Should show CUDA version >= 12.0
+  ```
+- Check 3: pynvml installed
+  ```bash
+  $ pip install -e ".[gpu]"
+  $ python -c "import pynvml; print('OK')"
+  ```
+- Check 4: GPU visibility
+  ```bash
+  $ CUDA_VISIBLE_DEVICES=0 python -c "import torch; print(torch.cuda.is_available())"
+  # Should print True
+  ```
 
 ---
 
@@ -1116,16 +1089,14 @@ EOF
 
 **Common Causes & Fixes:**
 
-┌────────────────────────────────────────────────────────────────────────────┐
-│ Issue                         │ Fix                                        │
-├────────────────────────────────────────────────────────────────────────────┤
-│ Imbalanced reward weights     │ Adjust RL_UCO_W_TIME & RL_UCO_W_ENERGY    │
-│ Insufficient training data    │ Increase num-samples during collection    │
-│ Training stopped too early    │ Increase --epochs (try 200, 500)          │
-│ Biased bootstrap policies     │ Diversify with more random/mutation       │
-│ Dataset distribution skewed   │ Check for missing ISA target or regime    │
-│ Hardware variability          │ Increase PROFILE_RUNS for median timing   │
-└────────────────────────────────────────────────────────────────────────────┘
+| Issue | Fix |
+|-------|-----|
+| Imbalanced reward weights | Adjust `RL_UCO_W_TIME` & `RL_UCO_W_ENERGY` |
+| Insufficient training data | Increase `num-samples` during collection |
+| Training stopped too early | Increase `--epochs` (try 200, 500) |
+| Biased bootstrap policies | Diversify with more random/mutation |
+| Dataset distribution skewed | Check for missing ISA target or regime |
+| Hardware variability | Increase `PROFILE_RUNS` for median timing |
 
 **Recommended Retrain:**
 
