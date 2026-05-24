@@ -1,0 +1,26 @@
+services:
+  rl-uco-dev:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+    image: rl-uco:dev
+    privileged: true
+    volumes:
+      - ../..:/workspace
+    working_dir: /workspace
+    environment:
+      - RL_UCO_DATA=/workspace/data
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp:unconfined
+
+  rl-uco-collect:
+    extends:
+      service: rl-uco-dev
+    command: >
+      rl-uco-collect
+      --corpus /workspace/data/corpus
+      --output /workspace/data/datasets/v1
+      --isa x86_64_v3
+      --num-workers 4

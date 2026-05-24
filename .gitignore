@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+.env
+
+# Data & artifacts
+data/raw/
+data/processed/
+data/graphs/
+data/datasets/
+*.parquet
+*.lmdb
+corpus/cache/
+checkpoints/
+runs/
+*.bc
+*.ll
+*.o
+*.exe
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+infra/docker/.build/
+
+# Logs
+*.log
+logs/

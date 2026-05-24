@@ -1,0 +1,231 @@
+# LLVM New Pass Manager — curated action space for RL-UCO
+# Each entry: name, opt flag fragment, kind (transform|adaptor), allowed_after adaptors
+
+llvm_version_min: 18
+max_episode_steps: 12
+stop_action_id: 0
+
+passes:
+  - id: 1
+    name: instcombine
+    pipeline: instcombine
+    kind: transform
+  - id: 2
+    name: simplifycfg
+    pipeline: simplifycfg
+    kind: transform
+  - id: 3
+    name: gvn
+    pipeline: gvn
+    kind: transform
+  - id: 4
+    name: dse
+    pipeline: dse
+    kind: transform
+  - id: 5
+    name: deadcodeelim
+    pipeline: deadcodeelim
+    kind: transform
+  - id: 6
+    name: memcpyopt
+    pipeline: memcpyopt
+    kind: transform
+  - id: 7
+    name: sccp
+    pipeline: sccp
+    kind: transform
+  - id: 8
+    name: bdce
+    pipeline: bdce
+    kind: transform
+  - id: 9
+    name: reassociate
+    pipeline: reassociate
+    kind: transform
+  - id: 10
+    name: loop-simplify
+    pipeline: loop-simplify
+    kind: transform
+  - id: 11
+    name: lcssa
+    pipeline: lcssa
+    kind: transform
+  - id: 12
+    name: loop-rotate
+    pipeline: loop-rotate
+    kind: transform
+  - id: 13
+    name: licm
+    pipeline: licm
+    kind: transform
+  - id: 14
+    name: loop-unroll
+    pipeline: loop-unroll
+    kind: transform
+  - id: 15
+    name: loop-vectorize
+    pipeline: loop-vectorize
+    kind: transform
+  - id: 16
+    name: slp-vectorizer
+    pipeline: slp-vectorizer
+    kind: transform
+  - id: 17
+    name: inline
+    pipeline: inline
+    kind: transform
+  - id: 18
+    name: globalopt
+    pipeline: globalopt
+    kind: transform
+  - id: 19
+    name: globaldce
+    pipeline: globaldce
+    kind: transform
+  - id: 20
+    name: ipsccp
+    pipeline: ipsccp
+    kind: transform
+  - id: 21
+    name: adce
+    pipeline: adce
+    kind: transform
+  - id: 22
+    name: jump-threading
+    pipeline: jump-threading
+    kind: transform
+  - id: 23
+    name: correlated-value-propagation
+    pipeline: correlated-value-propagation
+    kind: transform
+  - id: 24
+    name: speculating-execution
+    pipeline: speculating-execution
+    kind: transform
+  - id: 25
+    name: mem2reg
+    pipeline: mem2reg
+    kind: transform
+  - id: 26
+    name: early-cse
+    pipeline: early-cse
+    kind: transform
+  - id: 27
+    name: tailcallelim
+    pipeline: tailcallelim
+    kind: transform
+  - id: 28
+    name: function-attrs
+    pipeline: function-attrs
+    kind: transform
+  - id: 29
+    name: inferattrs
+    pipeline: inferattrs
+    kind: transform
+  - id: 30
+    name: loop-load-elim
+    pipeline: loop-load-elim
+    kind: transform
+  - id: 31
+    name: loop-deletion
+    pipeline: loop-deletion
+    kind: transform
+  - id: 32
+    name: indvars
+    pipeline: indvars
+    kind: transform
+  - id: 33
+    name: loop-unroll-and-jam
+    pipeline: loop-unroll-and-jam
+    kind: transform
+  - id: 34
+    name: div-rem-pairs
+    pipeline: div-rem-pairs
+    kind: transform
+  - id: 35
+    name: mergefunc
+    pipeline: mergefunc
+    kind: transform
+  - id: 36
+    name: constprop
+    pipeline: constprop
+    kind: transform
+  - id: 37
+    name: alignment-from-assumptions
+    pipeline: alignment-from-assumptions
+    kind: transform
+  - id: 38
+    name: loop-distribute
+    pipeline: loop-distribute
+    kind: transform
+  - id: 39
+    name: loop-fusion
+    pipeline: loop-fusion
+    kind: transform
+  - id: 40
+    name: mldst-motion
+    pipeline: mldst-motion
+    kind: transform
+
+# Nested adaptors (Phase 0: limited nesting)
+adaptors:
+  - id: 101
+    name: module
+    pipeline: "module({inner})"
+    kind: adaptor
+    max_depth: 2
+  - id: 102
+    name: cgscc
+    pipeline: "cgscc({inner})"
+    kind: adaptor
+    max_depth: 2
+  - id: 103
+    name: function
+    pipeline: "function({inner})"
+    kind: adaptor
+    max_depth: 2
+  - id: 104
+    name: loop
+    pipeline: "loop({inner})"
+    kind: adaptor
+    max_depth: 2
+
+mlir_passes:
+  - id: 201
+    name: canonicalize
+    pipeline: canonicalize
+    kind: transform
+  - id: 202
+    name: cse
+    pipeline: cse
+    kind: transform
+  - id: 203
+    name: linalg-fold-unit-extent-dims
+    pipeline: linalg-fold-unit-extent-dims
+    kind: transform
+  - id: 204
+    name: convert-linalg-to-loops
+    pipeline: convert-linalg-to-loops
+    kind: transform
+  - id: 205
+    name: convert-scf-to-cf
+    pipeline: convert-scf-to-cf
+    kind: transform
+  - id: 206
+    name: gpu-kernel-outlining
+    pipeline: gpu-kernel-outlining
+    kind: transform
+  - id: 207
+    name: nvvm-attach-target
+    pipeline: nvvm-attach-target
+    kind: transform
+  - id: 208
+    name: gpu-module-to-binary
+    pipeline: gpu-module-to-binary
+    kind: transform
+
+default_baselines:
+  O0: ""
+  O3: "default<O3>"
+  Oz: "default<Oz>"
+  Os: "default<Os>"

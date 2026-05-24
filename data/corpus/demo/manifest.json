@@ -1,0 +1,222 @@
+[
+  {
+    "function_id": "synth_0000",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0000\\fn.c",
+    "function_name": "synth_0",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0000\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0001",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0001\\fn.c",
+    "function_name": "synth_1",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0001\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0002",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0002\\fn.c",
+    "function_name": "synth_2",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0002\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0003",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0003\\fn.c",
+    "function_name": "synth_3",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0003\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0004",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0004\\fn.c",
+    "function_name": "synth_4",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0004\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0005",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0005\\fn.c",
+    "function_name": "synth_5",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0005\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0006",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0006\\fn.c",
+    "function_name": "synth_6",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0006\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0007",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0007\\fn.c",
+    "function_name": "synth_7",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0007\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0008",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0008\\fn.c",
+    "function_name": "synth_8",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0008\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0009",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0009\\fn.c",
+    "function_name": "synth_9",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0009\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0010",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0010\\fn.c",
+    "function_name": "synth_10",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0010\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0011",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0011\\fn.c",
+    "function_name": "synth_11",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0011\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0012",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0012\\fn.c",
+    "function_name": "synth_12",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0012\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0013",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0013\\fn.c",
+    "function_name": "synth_13",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0013\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0014",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0014\\fn.c",
+    "function_name": "synth_14",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0014\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0015",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0015\\fn.c",
+    "function_name": "synth_15",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0015\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0016",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0016\\fn.c",
+    "function_name": "synth_16",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0016\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0017",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0017\\fn.c",
+    "function_name": "synth_17",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0017\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0018",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0018\\fn.c",
+    "function_name": "synth_18",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0018\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  },
+  {
+    "function_id": "synth_0019",
+    "source_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0019\\fn.c",
+    "function_name": "synth_19",
+    "ir_path": "C:\\Projects\\RL-for-Universal-Compiler-Optimization\\data\\corpus\\demo\\synth_0019\\fn.ll",
+    "lang": "c",
+    "approx_ir_size": 1,
+    "has_loops": true,
+    "is_gpu_candidate": false,
+    "license_tag": "synthetic"
+  }
+]

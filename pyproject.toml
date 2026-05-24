@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rl-uco"
+version = "0.1.0"
+description = "Offline RL for universal compiler optimization (LLVM/MLIR pass sequencing)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "RL-UCO Contributors" }]
+dependencies = [
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+    "pydantic>=2.5",
+    "pandas>=2.1",
+    "pyarrow>=14.0",
+    "torch>=2.1",
+    "tqdm>=4.66",
+    "click>=8.1",
+    "libclang>=16.0.6",
+    "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.1",
+]
+distributed = [
+    "ray[default]>=2.9",
+]
+gnn = [
+    "torch-geometric>=2.4",
+]
+gpu = [
+    "pynvml>=11.5",
+]
+
+[project.scripts]
+rl-uco-collect = "rl_uco.data.collector:main"
+rl-uco-train = "rl_uco.rl.offline_trainer:main"
+rl-uco-eval = "rl_uco.eval.report:main"
+rl-uco-extract = "rl_uco.corpus.extract:main"
+rl-uco-infer = "rl_uco.rl.inference:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["rl_uco*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
