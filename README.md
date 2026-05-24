@@ -667,171 +667,121 @@ rl-uco-train --dataset data/datasets/multi_v1 --output checkpoints/multi-isa
 
 ---
 
-## Project Structure
-
 ```
 RL-for-Universal-Compiler-Optimization/
-├── README.md                          # This file
-├── LICENSE                            # Apache-2.0 license
-├── pyproject.toml                     # Project metadata & dependencies
 │
-├── rl_uco/                            # Core package
+├── Configuration & Build
+│   ├── README.md                          ◄ You are here
+│   ├── LICENSE                            Apache-2.0
+│   ├── pyproject.toml                     Project metadata & dependencies
+│   └── .gitignore
+│
+├── rl_uco/                                Core Package
 │   ├── __init__.py
-│   ├── config.py                      # Global configuration, toolchain discovery
+│   ├── config.py                          ◄ Global config + toolchain discovery
 │   │
-│   ├── corpus/                        # Function extraction & normalization
-│   │   ├── extract.py                 # Main corpus extraction CLI
-│   │   ├── models.py                  # LLVM/C AST models
-│   │   └── normalize.py               # IR normalization passes
+│   ├── corpus/                            Function extraction & normalization
+│   │   ├── extract.py                     ◄ CLI: rl-uco-extract
+│   │   ├── models.py                      LLVM/C AST representations
+│   │   ├── normalize.py                   IR normalization passes
+│   │   └── __init__.py
 │   │
-│   ├── passes/                        # Compiler pass management
-│   │   ├── registry.yaml              # Pass definitions & validation rules
-│   │   ├── executor.py                # Pass execution via opt
-│   │   ├── registry.py                # Pass registry data structures
-│   │   └── validator.py               # Sequence validation
+│   ├── passes/                            Compiler pass orchestration
+│   │   ├── registry.yaml                  ◄ Pass definitions & validation
+│   │   ├── executor.py                    Pass execution via opt
+│   │   ├── registry.py                    Registry data structures
+│   │   ├── validator.py                   Sequence validation
+│   │   └── __init__.py
 │   │
-│   ├── env/                           # Compile-run environment
-│   │   ├── compile_run.py             # Compilation & execution harness
-│   │   └── reward.py                  # Multi-objective reward calculation
+│   ├── env/                               Compile-run environment
+│   │   ├── compile_run.py                 Compilation & execution harness
+│   │   ├── reward.py                      Multi-objective reward calculation
+│   │   └── __init__.py
 │   │
-│   ├── hardware/                      # Hardware profilers
-│   │   ├── base.py                    # Abstract profiler interface
-│   │   ├── cpu_x86.py                 # Intel RAPL + perf
-│   │   ├── cpu_arm.py                 # ARM energy counters
-│   │   └── gpu_cuda.py                # NVIDIA NVML profiler
+│   ├── hardware/                          Hardware profilers (multi-ISA)
+│   │   ├── base.py                        Abstract profiler interface
+│   │   ├── cpu_x86.py                     Intel RAPL + perf
+│   │   ├── cpu_arm.py                     ARM energy counters
+│   │   ├── gpu_cuda.py                    NVIDIA NVML profiler
+│   │   └── __init__.py
 │   │
-│   ├── graph/                         # IR → Graph conversion
-│   │   ├── llvm_to_graph.py           # LLVM IR → PyG graph
-│   │   ├── mlir_to_graph.py           # MLIR → PyG graph
-│   │   └── parse.py                   # IR parsing utilities
+│   ├── graph/                             IR → PyG graph conversion
+│   │   ├── llvm_to_graph.py               LLVM IR → PyG graph
+│   │   ├── mlir_to_graph.py               MLIR → PyG graph
+│   │   ├── parse.py                       IR parsing utilities
+│   │   └── __init__.py
 │   │
-│   ---
-
-## Project Structure
-
-```
-RL-for-Universal-Compiler-Optimization/
+│   ├── ir/                                IR handling adapters
+│   │   ├── llvm_adapter.py                LLVM IR interface
+│   │   ├── mlir_adapter.py                MLIR interface
+│   │   └── __init__.py
+│   │
+│   ├── data/                              Dataset management
+│   │   ├── collector.py                   ◄ CLI: rl-uco-collect
+│   │   ├── schema.py                      Parquet schema definitions
+│   │   ├── versioning.py                  Dataset versioning logic
+│   │   ├── export_parquet.py              Parquet export utilities
+│   │   └── __init__.py
+│   │
+│   ├── rl/                                Reinforcement learning
+│   │   ├── actor_critic.py                PassPolicy + PassCritic
+│   │   ├── encoder.py                     StateEncoder (graph → embedding)
+│   │   ├── offline_trainer.py             ◄ CLI: rl-uco-train (IQL training)
+│   │   ├── inference.py                   ◄ CLI: rl-uco-infer
+│   │   └── __init__.py
+│   │
+│   └── eval/                              Evaluation & reporting
+│       ├── report.py                      ◄ CLI: rl-uco-eval
+│       └── __init__.py
 │
-├─ Configuration & Build
-│  ├─ README.md                                    ◄ You are here
-│  ├─ LICENSE                                      Apache-2.0
-│  ├─ pyproject.toml                              Project metadata & dependencies
-│  └─ .gitignore
+├── infra/                                 Infrastructure & Deployment
+│   ├── docker/
+│   │   ├── Dockerfile                     LLVM 18 development container
+│   │   └── docker-compose.yml             Multi-container orchestration
+│   └── inference/
+│       └── opt_driver.py                  Standalone inference driver
 │
-├─ Core Package: rl_uco/
-│  │
-│  ├─ __init__.py
-│  ├─ config.py                                    ◄ Global config + toolchain discovery
-│  │
-│  ├─ corpus/                                      Function extraction & normalization
-│  │  ├─ extract.py                               ◄ CLI: rl-uco-extract
-│  │  ├─ models.py                                LLVM/C AST representations
-│  │  ├─ normalize.py                             IR normalization passes
-│  │  └─ __init__.py
-│  │
-│  ├─ passes/                                      Compiler pass orchestration
-│  │  ├─ registry.yaml                            ◄ Pass definitions & validation
-│  │  ├─ executor.py                              Pass execution via opt
-│  │  ├─ registry.py                              Registry data structures
-│  │  ├─ validator.py                             Sequence validation
-│  │  └─ __init__.py
-│  │
-│  ├─ env/                                         Compile-run environment
-│  │  ├─ compile_run.py                           Compilation & execution harness
-│  │  ├─ reward.py                                Multi-objective reward calculation
-│  │  └─ __init__.py
-│  │
-│  ├─ hardware/                                    Hardware profilers (multi-ISA)
-│  │  ├─ base.py                                  Abstract profiler interface
-│  │  ├─ cpu_x86.py                               Intel RAPL + perf
-│  │  ├─ cpu_arm.py                               ARM energy counters
-│  │  ├─ gpu_cuda.py                              NVIDIA NVML profiler
-│  │  └─ __init__.py
-│  │
-│  ├─ graph/                                       IR → PyG graph conversion
-│  │  ├─ llvm_to_graph.py                         LLVM IR → PyG graph
-│  │  ├─ mlir_to_graph.py                         MLIR → PyG graph
-│  │  ├─ parse.py                                 IR parsing utilities
-│  │  └─ __init__.py
-│  │
-│  ├─ ir/                                          IR handling adapters
-│  │  ├─ llvm_adapter.py                          LLVM IR interface
-│  │  ├─ mlir_adapter.py                          MLIR interface
-│  │  └─ __init__.py
-│  │
-│  ├─ data/                                        Dataset management
-│  │  ├─ collector.py                             ◄ CLI: rl-uco-collect
-│  │  ├─ schema.py                                Parquet schema definitions
-│  │  ├─ versioning.py                            Dataset versioning logic
-│  │  ├─ export_parquet.py                        Parquet export utilities
-│  │  └─ __init__.py
-│  │
-│  ├─ rl/                                          Reinforcement learning
-│  │  ├─ actor_critic.py                          PassPolicy + PassCritic
-│  │  ├─ encoder.py                               StateEncoder (graph → embedding)
-│  │  ├─ offline_trainer.py                       ◄ CLI: rl-uco-train (IQL training)
-│  │  ├─ inference.py                             ◄ CLI: rl-uco-infer
-│  │  └─ __init__.py
-│  │
-│  └─ eval/                                        Evaluation & reporting
-│     ├─ report.py                                ◄ CLI: rl-uco-eval
-│     └─ __init__.py
+├── data/                                  Data Directory (Generated)
+│   ├── corpus/                            Extracted function corpus
+│   │   └── demo/
+│   │       ├── manifest.json
+│   │       ├── synth_0000/                fn.c, fn.ll
+│   │       ├── synth_0001/                fn.c, fn.ll
+│   │       └── ...
+│   ├── datasets/                          Versioned Parquet datasets
+│   │   └── demo_v1/
+│   │       ├── manifest.json              metadata: LLVM version, config
+│   │       ├── data.parquet               N rows × 15 columns
+│   │       └── graphs/
+│   │           ├── synth_0000.pt          PyG graph tensors
+│   │           ├── synth_0001.pt
+│   │           └── ...
+│   └── graphs/                            Cache: PyG serialized graphs
 │
-├─ Infrastructure & Deployment: infra/
-│  │
-│  ├─ docker/
-│  │  ├─ Dockerfile                               LLVM 18 development container
-│  │  └─ docker-compose.yml                       Multi-container orchestration
-│  │
-│  └─ inference/
-│     └─ opt_driver.py                            Standalone inference driver
-│                                                  (Python wrapper for opt)
+├── checkpoints/
+│   └── best.pt                            Trained model checkpoint
 │
-├─ Data Directory (Generated): data/
-│  │
-│  ├─ corpus/                                      Extracted function corpus
-│  │  └─ demo/
-│  │     ├─ manifest.json
-│  │     ├─ synth_0000/ ─► fn.c, fn.ll
-│  │     ├─ synth_0001/ ─► fn.c, fn.ll
-│  │     └─ ... (up to N functions)
-│  │
-│  ├─ datasets/                                    Versioned Parquet datasets
-│  │  └─ demo_v1/
-│  │     ├─ manifest.json                         (metadata: LLVM version, config)
-│  │     ├─ data.parquet                          (N rows × 15 columns)
-│  │     └─ graphs/
-│  │        ├─ synth_0000.pt                      PyG graph tensors
-│  │        ├─ synth_0001.pt
-│  │        └─ ...
-│  │
-│  └─ graphs/ (cache)
-│     └─ (PyG serialized graphs)
+├── docs/
+│   ├── architecture.md                    System design, data flow, IR strategies
+│   ├── dataset_schema.md                  Parquet schema specification
+│   ├── deployment.md                      Production deployment guide
+│   └── hardware_setup.md                  Platform-specific profiling setup
 │
-├─ Checkpoints: checkpoints/
-│  └─ best.pt                                      Trained model checkpoint
+├── scripts/
+│   ├── generate_demo_data.py
+│   └── scale_corpus.py
 │
-├─ Documentation: docs/
-│  ├─ architecture.md                             System design, data flow, IR strategies
-│  ├─ dataset_schema.md                           Parquet schema specification
-│  ├─ deployment.md                               Production deployment guide
-│  └─ hardware_setup.md                           Platform-specific profiling setup
-│
-├─ Utilities & Examples: scripts/
-│  ├─ generate_demo_data.py
-│  └─ scale_corpus.py
-│
-└─ Tests: tests/
-   ├─ test_corpus.py
-   ├─ test_graph.py
-   ├─ test_passes.py
-   ├─ test_reward.py
-   ├─ test_agent.py
-   ├─ test_schema.py
-   └─ fixtures/
-      ├─ sample.c
-      ├─ sample_kernel.mlir
-      └─ sample.ll
+└── tests/
+    ├── test_corpus.py
+    ├── test_graph.py
+    ├── test_passes.py
+    ├── test_reward.py
+    ├── test_agent.py
+    ├── test_schema.py
+    └── fixtures/
+        ├── sample.c
+        ├── sample_kernel.mlir
+        └── sample.ll
 ```
 
 ### Module Dependency Graph
