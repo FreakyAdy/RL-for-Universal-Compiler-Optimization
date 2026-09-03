@@ -5,7 +5,7 @@
 
 **Learn optimal compiler pass sequences from execution traces — without compiler-in-the-loop latency.**
 
-[![CI / Quality Gate](https://github.com/FreakyAdy/RL-for-Universal-Compiler-Optimization/actions/workflows/ci.yml/badge.svg)](https://github.com/FreakyAdy/RL-for-Universal-Compiler-Optimization/actions)
+[![CI / Quality Gate](https://github.com/FreakyAdy/RL-for-Universal-Compiler-Optimization/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/FreakyAdy/RL-for-Universal-Compiler-Optimization/actions/workflows/ci.yml)
 [![Tests Passing](https://img.shields.io/badge/tests-12%2F12%20passed%20(100%25)-brightgreen.svg)](tests/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://python.org)
 [![LLVM 18+](https://img.shields.io/badge/LLVM-18%2B-orange.svg)](https://llvm.org/)
