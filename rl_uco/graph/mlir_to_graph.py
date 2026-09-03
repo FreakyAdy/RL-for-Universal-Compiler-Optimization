@@ -16,8 +16,17 @@ except ImportError:
     PyGData = None
 
 MLIR_OPS = [
-    "func", "return", "arith", "linalg", "scf", "cf", "gpu", "memref",
-    "tensor", "llvm", "other",
+    "func",
+    "return",
+    "arith",
+    "linalg",
+    "scf",
+    "cf",
+    "gpu",
+    "memref",
+    "tensor",
+    "llvm",
+    "other",
 ]
 OP_TO_IDX = {op: i for i, op in enumerate(MLIR_OPS)}
 

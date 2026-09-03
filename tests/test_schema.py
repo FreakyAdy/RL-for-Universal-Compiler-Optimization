@@ -9,7 +9,9 @@ def test_row_to_dataframe():
         ir_kind="llvm",
         graph_path="g.pt",
         isa="x86_64_v3",
-        pass_sequence=[{"pass_id": 1, "name": "instcombine", "pipeline": "instcombine", "kind": "transform"}],
+        pass_sequence=[
+            {"pass_id": 1, "name": "instcombine", "pipeline": "instcombine", "kind": "transform"}
+        ],
         wall_time_ns=100.0,
         energy_j=1.0,
         baseline_wall_time_ns=200.0,

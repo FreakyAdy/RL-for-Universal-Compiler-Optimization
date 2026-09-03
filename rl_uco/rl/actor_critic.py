@@ -70,11 +70,12 @@ class PassPolicy(nn.Module):
             state = state.unsqueeze(0)
         h0 = self.state_proj(state)  # (batch, hidden)
         hx = h0.unsqueeze(0)  # (num_layers=1, batch, hidden)
+        curr_inp: torch.Tensor | None = None
         for t in range(max_steps):
-            if t == 0:
+            if t == 0 or curr_inp is None:
                 logits = self.head(h0)
             else:
-                emb = self.pass_embed(inp).unsqueeze(1)  # (batch, 1, emb)
+                emb = self.pass_embed(curr_inp).unsqueeze(1)  # (batch, 1, emb)
                 out, hx = self.gru(emb, hx)
                 logits = self.head(out[:, -1, :])
             probs = F.softmax(logits / temperature, dim=-1)
@@ -82,7 +83,7 @@ class PassPolicy(nn.Module):
             if idx == 0:
                 break
             ids.append(idx)
-            inp = torch.tensor([idx], device=state.device, dtype=torch.long)
+            curr_inp = torch.tensor([idx], device=state.device, dtype=torch.long)
         return ids
 
 

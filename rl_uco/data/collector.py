@@ -14,7 +14,7 @@ from rl_uco.data.export_parquet import export_dataset
 from rl_uco.data.schema import DatasetManifest, DatasetRow
 from rl_uco.env.compile_run import CompileRunEnv
 from rl_uco.graph.llvm_to_graph import llvm_to_pyg, save_graph
-from rl_uco.passes.registry import PassAction, load_registry
+from rl_uco.passes.registry import PassAction
 
 
 def _load_corpus(corpus_dir: Path) -> list[FunctionRecord]:
@@ -29,17 +29,16 @@ def _load_corpus(corpus_dir: Path) -> list[FunctionRecord]:
 
 
 def _collect_one(
-  function_id: str,
-  ir_path: str,
-  function_name: str,
-  isa: str,
-  policy_tag: str,
-  graph_dir: str,
-  version: str,
-  seed_seq: list[dict] | None,
+    function_id: str,
+    ir_path: str,
+    function_name: str,
+    isa: str,
+    policy_tag: str,
+    graph_dir: str,
+    version: str,
+    seed_seq: list[dict] | None,
 ) -> DatasetRow | None:
     env = CompileRunEnv()
-    registry = load_registry()
     rng = random.Random(hash(function_id) % (2**32))
     seed_actions = None
     if seed_seq:
@@ -99,7 +98,16 @@ def collect_dataset(
         policy_tag = random.choices(policies, weights=weights, k=1)[0]
         seed = random.choice(top_sequences) if policy_tag == "mutate" and top_sequences else None
         jobs.append(
-            (rec.function_id, rec.ir_path, rec.function_name, isa, policy_tag, str(graph_dir), version, seed),
+            (
+                rec.function_id,
+                rec.ir_path,
+                rec.function_name,
+                isa,
+                policy_tag,
+                str(graph_dir),
+                version,
+                seed,
+            ),
         )
 
     if max_rows:

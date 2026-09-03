@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import subprocess
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -124,29 +123,19 @@ class LLVMAdapter:
         return IRArtifact(source, ir_path, function_name, isa)
 
     def count_instructions(self, ir_path: Path) -> int:
+        """Count LLVM IR instructions (both `%var = op` and bare terminal forms)."""
+        import re
+
+        assign_pat = re.compile(r"^\s*%[\w.]+ = (\w+)")
+        bare_ops = {"br", "ret", "store", "call", "switch", "unreachable", "invoke"}
         count = 0
         for line in ir_path.read_text(encoding="utf-8", errors="replace").splitlines():
             s = line.strip()
             if not s or s.startswith(";"):
                 continue
-            if s.endswith(":") and not s.startswith(";"):
-                continue
-            if any(
-                s.startswith(op)
-                for op in (
-                    "load",
-                    "store",
-                    "add",
-                    "sub",
-                    "mul",
-                    "icmp",
-                    "br ",
-                    "call",
-                    "ret",
-                    "phi",
-                    "alloca",
-                    "getelementptr",
-                )
-            ):
+            m = assign_pat.match(s)
+            if m:
+                count += 1
+            elif s.split()[0] in bare_ops:
                 count += 1
         return count

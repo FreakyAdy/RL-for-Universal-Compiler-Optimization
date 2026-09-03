@@ -5,7 +5,6 @@ import torch
 from rl_uco.graph.llvm_to_graph import llvm_to_pyg
 from rl_uco.graph.parse import OPCODES
 from rl_uco.rl.actor_critic import ActorCriticAgent
-from rl_uco.rl.encoder import ISAEmbedding
 
 
 def test_agent_forward(tmp_path):

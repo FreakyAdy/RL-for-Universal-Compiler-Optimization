@@ -98,4 +98,7 @@ class StateEncoder(nn.Module):
             g = g.unsqueeze(0)
         if isa.dim() == 1:
             isa = isa.unsqueeze(0)
+        # Expand graph embedding to match ISA batch dimension
+        if g.size(0) == 1 and isa.size(0) > 1:
+            g = g.expand(isa.size(0), -1)
         return self.fuse(torch.cat([g, isa], dim=-1))

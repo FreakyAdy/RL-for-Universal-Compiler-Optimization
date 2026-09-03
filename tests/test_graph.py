@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-import torch
 
 from rl_uco.graph.llvm_to_graph import llvm_to_pyg
 from rl_uco.graph.mlir_to_graph import mlir_to_pyg

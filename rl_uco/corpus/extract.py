@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import subprocess
 from dataclasses import asdict
 from pathlib import Path
 
@@ -32,9 +31,14 @@ def _clang_extract(source: Path) -> list[str]:
         names: list[str] = []
         for node in tu.cursor.walk():
             if node.kind == cx.CursorKind.FUNCTION_DECL and node.is_definition():
-                if node.spelling and node.location.file and Path(
-                    node.location.file.name,
-                ).resolve() == source.resolve():
+                if (
+                    node.spelling
+                    and node.location.file
+                    and Path(
+                        node.location.file.name,
+                    ).resolve()
+                    == source.resolve()
+                ):
                     names.append(node.spelling)
         return names[:MAX_FUNCTIONS_PER_FILE]
     except Exception:
@@ -44,7 +48,7 @@ def _clang_extract(source: Path) -> list[str]:
 def _regex_extract(source: Path) -> list[str]:
     text = source.read_text(encoding="utf-8", errors="replace")
     names = _FUNC_RE.findall(text)
-  # filter main
+    # filter main
     return [n for n in names if n != "main"][:MAX_FUNCTIONS_PER_FILE]
 
 
@@ -110,9 +114,7 @@ def extract_corpus(
 ) -> list[FunctionRecord]:
     llvm = LLVMAdapter(Toolchain.discover())
     all_records: list[FunctionRecord] = []
-    sources = sorted(
-        p for p in source_root.rglob("*") if p.suffix in extensions and p.is_file()
-    )
+    sources = sorted(p for p in source_root.rglob("*") if p.suffix in extensions and p.is_file())
     for src in sources:
         all_records.extend(extract_from_file(src, output_dir, llvm, isa=isa))
     all_records = dedupe_records(all_records)

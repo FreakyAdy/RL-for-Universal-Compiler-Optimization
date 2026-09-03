@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
@@ -40,7 +39,12 @@ def main() -> None:
                 graph_path=gpath.name,
                 isa="x86_64_v3",
                 pass_sequence=[
-                    {"pass_id": 1, "name": "instcombine", "pipeline": "instcombine", "kind": "transform"},
+                    {
+                        "pass_id": 1,
+                        "name": "instcombine",
+                        "pipeline": "instcombine",
+                        "kind": "transform",
+                    },
                     {"pass_id": 3, "name": "gvn", "pipeline": "gvn", "kind": "transform"},
                 ],
                 wall_time_ns=wall,

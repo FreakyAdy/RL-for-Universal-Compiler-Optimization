@@ -1,7 +1,5 @@
 """Corpus extraction tests."""
 
-from pathlib import Path
-
 from rl_uco.corpus.extract import _synthetic_corpus
 from rl_uco.corpus.normalize import dedupe_records
 

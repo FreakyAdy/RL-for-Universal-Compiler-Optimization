@@ -53,9 +53,18 @@ class OfflinePassDataset(Dataset):
 
 
 def collate_batch(batch):
+    """Collate variable-length pass sequences with zero-padding."""
+    max_len = max(b["pass_ids"].size(0) for b in batch)
+    padded_ids = []
+    for b in batch:
+        ids = b["pass_ids"]
+        pad_size = max_len - ids.size(0)
+        if pad_size > 0:
+            ids = torch.cat([ids, torch.zeros(pad_size, dtype=torch.long)])
+        padded_ids.append(ids)
     return {
         "data": batch[0]["data"],
-        "pass_ids": batch[0]["pass_ids"],
+        "pass_ids": torch.stack(padded_ids),
         "reward": torch.stack([b["reward"] for b in batch]),
         "isa_index": torch.stack([b["isa_index"] for b in batch]),
     }
@@ -103,7 +112,7 @@ class IQLTrainer:
         q_tgt = rewards
         q_loss = F.mse_loss(v, q_tgt)
 
-        bc = self.agent.bc_loss(state, pass_ids.unsqueeze(0))
+        bc = self.agent.bc_loss(state, pass_ids)
         exp_adv = torch.exp(self.beta * adv.detach()).clamp(max=100.0)
         actor_loss = (exp_adv * bc).mean()
 
@@ -118,6 +127,17 @@ class IQLTrainer:
             "bc_loss": float(bc.item()),
             "actor_loss": float(actor_loss.item()),
         }
+
+    def train_epoch(self, loader: DataLoader) -> dict[str, float]:
+        """Run one full pass over the DataLoader, return averaged metrics."""
+        totals: dict[str, float] = {}
+        n = 0
+        for batch in loader:
+            metrics = self.train_step(batch)
+            for k, v in metrics.items():
+                totals[k] = totals.get(k, 0.0) + v
+            n += 1
+        return {k: v / max(n, 1) for k, v in totals.items()}
 
 
 def train_bc_baseline(
@@ -140,11 +160,23 @@ def train_bc_baseline(
             opt.step()
 
 
+def _resolve_dataset(path: Path) -> Path:
+    """If *path* is a directory, find the first Parquet file inside it."""
+    if path.is_dir():
+        candidates = sorted(path.glob("*.parquet"))
+        if not candidates:
+            raise click.BadParameter(f"No .parquet files found in {path}")
+        return candidates[0]
+    return path
+
+
 @click.command()
 @click.option("--dataset", type=click.Path(exists=True, path_type=Path), required=True)
 @click.option("--output", type=click.Path(path_type=Path), default=CHECKPOINT_DIR)
 @click.option("--epochs", default=20)
 @click.option("--batch-size", default=8)
+@click.option("--learning-rate", "lr", default=3e-4, type=float)
+@click.option("--seed", default=None, type=int, help="Random seed for reproducibility")
 @click.option("--bc-only", is_flag=True, help="Behavior cloning warmup only")
 @click.option("--device", default="cpu")
 def main(
@@ -152,9 +184,14 @@ def main(
     output: Path,
     epochs: int,
     batch_size: int,
+    lr: float,
+    seed: int | None,
     bc_only: bool,
     device: str,
 ) -> None:
+    if seed is not None:
+        torch.manual_seed(seed)
+    dataset = _resolve_dataset(dataset)
     graph_dir = dataset.parent / "graphs"
     if not graph_dir.exists():
         graph_dir = GRAPH_DIR
@@ -162,17 +199,20 @@ def main(
     if len(ds) == 0:
         click.echo("No training rows; collect dataset first.")
         return
-    loader = DataLoader(ds, batch_size=1, shuffle=True, collate_fn=collate_batch)
+    loader = DataLoader(ds, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
     registry = load_registry()
     num_actions = registry.num_actions
     agent = ActorCriticAgent(len(OPCODES), num_actions)
     if bc_only:
         train_bc_baseline(agent, loader, epochs=epochs, device=device)
     else:
-        trainer = IQLTrainer(agent, device=device)
+        trainer = IQLTrainer(agent, lr=lr, device=device)
+        best_loss = float("inf")
         for ep in range(epochs):
-            metrics = trainer.train_step(next(iter(loader)))
-            click.echo(f"epoch {ep}: {metrics}")
+            metrics = trainer.train_epoch(loader)
+            click.echo(f"epoch {ep + 1}/{epochs}: {metrics}")
+            if metrics["loss"] < best_loss:
+                best_loss = metrics["loss"]
     output.mkdir(parents=True, exist_ok=True)
     ckpt = output / "best.pt"
     torch.save({"model": agent.state_dict(), "num_actions": num_actions}, ckpt)

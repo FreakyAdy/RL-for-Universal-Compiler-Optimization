@@ -32,9 +32,10 @@ class PassExecutor:
         registry: PassRegistry | None = None,
         toolchain: Toolchain | None = None,
     ):
-        self.registry = registry or __import__(
-            "rl_uco.passes.registry", fromlist=["load_registry"]
-        ).load_registry()
+        self.registry = (
+            registry
+            or __import__("rl_uco.passes.registry", fromlist=["load_registry"]).load_registry()
+        )
         self.toolchain = toolchain or Toolchain.discover()
         self.validator = PassSequenceValidator(self.registry)
 
@@ -56,7 +57,13 @@ class PassExecutor:
             return CompileResult(True, ir_path=output_ir)
 
         if ir_kind == "mlir":
-            cmd = [self.toolchain.mlir_opt, input_ir, f"-pass-pipeline={pipeline}", "-o", str(output_ir)]
+            cmd = [
+                self.toolchain.mlir_opt,
+                input_ir,
+                f"-pass-pipeline={pipeline}",
+                "-o",
+                str(output_ir),
+            ]
         else:
             cmd = [self.toolchain.opt, input_ir, f"-passes={pipeline}", "-S", "-o", str(output_ir)]
 

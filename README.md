@@ -174,7 +174,7 @@ Normalized Reward
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/RL-for-Universal-Compiler-Optimization.git
+git clone https://github.com/FreakyAdy/RL-for-Universal-Compiler-Optimization.git
 cd RL-for-Universal-Compiler-Optimization
 
 # Create virtual environment
@@ -875,7 +875,7 @@ If you use RL-UCO in your research, please cite:
   title={RL-UCO: Offline Reinforcement Learning for Universal Compiler Optimization},
   author={Contributors, RL-UCO},
   year={2024},
-  url={https://github.com/yourusername/RL-for-Universal-Compiler-Optimization}
+  url={https://github.com/FreakyAdy/RL-for-Universal-Compiler-Optimization}
 }
 ```
 

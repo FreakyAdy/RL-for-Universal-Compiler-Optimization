@@ -14,7 +14,7 @@ def export_dataset(
     manifest: DatasetManifest | None = None,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
-    out = output_dir / f"dataset_{version}.parquet"
+    out = output_dir / "data.parquet"
     df = rows_to_dataframe(rows)
     df.to_parquet(out, index=False)
     if manifest:
