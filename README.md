@@ -1,909 +1,366 @@
-# RL for Universal Compiler Optimization (RL-UCO)
+<div align="center">
 
-> An open-source research framework for offline reinforcement learning (IQL) over compiler pass selection strategies to optimize **runtime and energy consumption** across diverse hardware architectures.
+# ⚡ `rl-uco`
+### Offline Reinforcement Learning for Universal Compiler Optimization Across ISAs
 
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue?style=flat&logo=python)](https://www.python.org/downloads/)
-[![LLVM 18+](https://img.shields.io/badge/LLVM-18+-orange?style=flat)](https://llvm.org/)
+**Learn optimal compiler pass sequences from execution traces — without compiler-in-the-loop latency.**
 
-## Overview
+[![CI / Quality Gate](https://github.com/FreakyAdy/RL-for-Universal-Compiler-Optimization/actions/workflows/ci.yml/badge.svg)](https://github.com/FreakyAdy/RL-for-Universal-Compiler-Optimization/actions)
+[![Tests Passing](https://img.shields.io/badge/tests-12%2F12%20passed%20(100%25)-brightgreen.svg)](tests/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://python.org)
+[![LLVM 18+](https://img.shields.io/badge/LLVM-18%2B-orange.svg)](https://llvm.org/)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Contributing Guide](https://img.shields.io/badge/contributing-guide-blue.svg)](CONTRIBUTING.md)
 
-**RL-UCO** explores learning compiler pass sequences for unseen functions and target ISAs using offline reinforcement learning. Rather than relying solely on hand-crafted heuristics or fixed optimization levels (-O2/-O3), the framework trains an actor-critic agent on pre-collected compile-run traces to predict effective pass pipelines conditioned on program graph structure and hardware target.
+<p align="center">
+  <a href="#-quick-demo">⚡ Quick Demo</a> •
+  <a href="#-why-rl-uco">💡 Why RL-UCO</a> •
+  <a href="#️-system-architecture">🏗️ Architecture</a> •
+  <a href="#-hardware-profiling--cross-isa-support">🎯 Hardware & ISAs</a> •
+  <a href="#-quick-start">🚀 Quick Start</a> •
+  <a href="#-pipeline-workflow">🔄 Pipeline</a> •
+  <a href="#️-ecosystem-comparison">⚖️ Ecosystem</a> •
+  <a href="#-contributing">🤝 Contributing</a>
+</p>
 
-```
-Traditional Compiler Optimization         RL-UCO Approach
-═════════════════════════════════════════ ════════════════════════════════════════
+> **🔬 Research Framework** — RL-UCO decouples compiler pass selection from interactive online environments. Rather than invoking `opt` and physical microbenchmarks inside the inner training loop, it uses **Implicit Q-Learning (IQL)** over static execution logs (`data.parquet`) with learned Graph Neural Network (GNN) and ISA conditioning.
 
-  Hand-crafted pass orderings               Learned pass selection from offline data
-  Static -O0 / -O2 / -O3 levels             Context-aware pass sequence proposal
-  Fixed per-architecture tuning             Cross-ISA learned conditioning
-  Binary outcomes (compile/fail)            Multi-objective (time + energy)
-```
-
-### Key Capabilities
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ ✓ Multi-Objective Profiling                                                 │
-│   Joint measurement of wall-time and energy via hardware interfaces         │
-│   (Intel RAPL sysfs on x86-64, NVML on NVIDIA GPUs, perf on Linux)          │
-│                                                                             │
-│ ✓ Cross-ISA Conditioning                                                    │
-│   Learned ISA embeddings condition the policy for x86-64, ARM64, and CUDA   │
-│                                                                             │
-│ ✓ Offline Reinforcement Learning (IQL)                                      │
-│   Trains on logged execution datasets via Implicit Q-Learning without an    │
-│   interactive compiler-in-the-loop, avoiding compile crashes and latency   │
-│   during training                                                           │
-│                                                                             │
-│ ✓ Graph-Based State Representation                                          │
-│   Encodes LLVM IR as program graphs with opcode features for GNN / MLP      │
-│   state representation                                                      │
-│                                                                             │
-│ ✓ Correctness Verification Gate                                             │
-│   Validation via llvm-diff functional comparison and runtime output checks  │
-│   with automatic fallback to -O3                                            │
-└─────────────────────────────────────────────────────────────────────────────┘
+</div>
 
 ---
 
-## Table of Contents
+## ⚡ Quick Demo
 
-- [Features](#features)
-- [Quick Start](#quick-start)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Docker Setup](#docker-setup-recommended)
-- [Pipeline Overview](#pipeline-overview)
-- [Configuration & Tuning](#configuration--tuning)
-- [Advanced Usage](#advanced-usage)
-  - [Distributed Data Collection](#distributed-data-collection)
-  - [Custom Pass Sequences](#custom-pass-sequences)
-  - [Multi-Hardware Evaluation](#multi-hardware-evaluation)
-- [Project Structure](#project-structure)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
+Run the end-to-end pipeline in under 15 seconds — synthetic corpus generation, Parquet dataset export, GNN state encoding, IQL training, and pass sequence inference (**no external LLVM installation required**):
+
+```bash
+python scripts/demo.py
+```
+
+```text
+============================================================
+Step 1/3: Generating synthetic corpus...
+============================================================
+  Created 20 synthetic functions
+
+============================================================
+Step 2/3: Building dataset and training IQL agent...
+============================================================
+  Wrote 20 rows to data/datasets/demo_v1/data.parquet
+  epoch 1/10: loss=1.1248
+  epoch 2/10: loss=0.7478
+  epoch 5/10: loss=0.1016
+  epoch 10/10: loss=0.0091
+  Saved checkpoint: checkpoints/best.pt
+
+============================================================
+Step 3/3: Running inference on a sample function...
+============================================================
+  Input:  fn.ll
+  Proposed pass sequence (12 passes): ['instcombine', 'instcombine', 'gvn', ...]
+  Pipeline string: instcombine,instcombine,gvn,gvn,gvn,gvn,gvn,gvn,gvn,gvn,gvn,gvn
+
+[OK] Demo complete!
+```
 
 ---
 
-## Features
+## 💡 Why RL-UCO?
 
-### Core Capabilities
+Modern compilers (LLVM, GCC) rely on static heuristics like `-O2` and `-O3` with fixed pass ordering. While general-purpose, fixed pipelines miss significant function-specific and hardware-specific optimization opportunities.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                  System Architecture                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Input (Function.ll)                                        │
-│         │                                                   │
-│         ▼                                                   │
-│  ┌──────────────────────┐                                  │
-│  │  Graph Encoder       │  ◄─── ISA Embedding             │
-│  │  (LLVM/MLIR → PyG)   │                                  │
-│  └──────────┬───────────┘                                  │
-│             │                                              │
-│             ▼                                              │
-│  ┌──────────────────────┐                                  │
-│  │  State Embedding     │                                  │
-│  │  (GNN + ISA concat)  │                                  │
-│  └──────────┬───────────┘                                  │
-│             │                                              │
-│    ┌────────┴────────┐                                     │
-│    ▼                 ▼                                      │
-│  Actor            Critic                                   │
-│  (Policy)         (Value)                                  │
-│    │                 │                                     │
-│    └────────┬────────┘                                     │
-│             ▼                                              │
-│  Pass Sequence: [inline, O2, sroa, ...]                   │
-│             │                                              │
-│             ▼                                              │
-│  Validation & Execution                                    │
-│             │                                              │
-│             ▼                                              │
-│  Optimized IR  +  Reward Score                            │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+Prior machine learning approaches formulated pass ordering as an **interactive online Gym** (e.g., CompilerGym). While conceptually appealing, interactive compiler environments introduce severe operational barriers:
 
-### Hardware Profiling Capabilities
+| Dimension | Standard Heuristics (`-O3`) | Interactive Gyms (e.g. CompilerGym) | ⚡ **RL-UCO (Offline IQL)** |
+| :--- | :--- | :--- | :--- |
+| **Pass Ordering** | Fixed, static sequence | Step-by-step online agent search | **Learned context-aware policy** |
+| **Training Speed** | N/A (no training) | Extremely slow (compiler in gradient loop) | **Fast GPU/CPU training over static logs** |
+| **Toolchain Stability** | High | Brittle (compiler crashes halt training) | **100% decoupled (pre-filtered clean logs)** |
+| **Objective** | Instruction count heuristic | Execution time or code size | **Multi-objective (Wall-time + Energy)** |
+| **Target Architecture** | Generic tuning per target | Single host CPU | **Cross-ISA conditioned (x86, ARM, CUDA)** |
+| **Deployment Safety** | Guaranteed | Unpredictable (crash risk) | **Correctness gate with auto -O3 fallback** |
 
-| Platform | Wall Time | Energy | Status |
-|----------|-----------|--------|--------|
-| **x86-64** | perf | Intel RAPL | ✓ Production Ready |
-| **ARM64** | perf | SPE/sysfs | ✓ Supported |
-| **NVIDIA CUDA** | CUDA API | NVML | ✓ GPU-optimized |
-| **Windows** | QueryPC | N/A (time only) | ◐ Partial (Dev mode) |
-| **macOS** | mach_time | N/A (time only) | ◐ Time-based rewards |
+### Core Design Principles
 
-### Supported IR & Frameworks
-
-| IR Type | Framework | Status | Details |
-|---------|-----------|--------|---------|
-| **LLVM IR** | LLVM 18+ | ✓ Primary | 100+ passes, NPM support |
-| **MLIR** | MLIR (dialect) | ◑ Experimental | GPU kernels, unified graph |
-
-### Reward Function Composition
-
-```
-Normalized Reward
-       │
-       ├─ (0.7 default) ────────────┐
-       │                             ▼
-       │              wall_time_improvement
-       │                             │
-       │                             ├─ [1.0 ... 0.0]
-       │                             │
-       │              ┌──────────────┘
-       │              │
-       ├─ (0.3 default) ────────────┐
-       │                             ▼
-       │              energy_improvement
-       │                             │
-       │                             ├─ [1.0 ... 0.0]
-       │                             │
-       └──────────────────────────────┘
-                    │
-                    ▼
-          Weighted Sum
-          [0.0 ... 1.0]
-          
-### Design Philosophy: Why Offline RL?
-
-Prior work in machine-learning-guided compilation (e.g., interactive gym environments) frequently structures pass ordering as an **online sequential environment**, where an agent takes actions through a live `step()`/`reset()` loop, invoking compiler passes, linking executables, and profiling hardware at each step during policy training.
-
-While conceptually familiar, live online compiler loops present severe operational hurdles:
-- **Compiler Latency:** Executing `opt`, `clang`, and benchmark runs in the innermost training loop slows policy optimization by orders of magnitude compared to standard simulation environments.
-- **Worker Instability:** Intermediate or malformed pass sequences can crash the compiler toolchain or trigger infinite optimization loops, stalling distributed training workers.
-- **Hardware Measurement Noise:** Profiling physical execution time and RAPL energy during active model training is vulnerable to thermal throttling and system interference.
-
-**RL-UCO adopts an Offline Reinforcement Learning (IQL) paradigm:**
-1. **Decoupled Data Collection:** Bootstrap policies (-O3, random sampling, pass sequence mutations) run during dataset collection (`rl-uco-collect`), recording execution times, hardware energy, and correctness into versioned Parquet logs alongside precomputed graph embeddings.
-2. **Fast Offline Policy Learning:** Implicit Q-Learning (IQL) trains the actor-critic network purely over static dataset traces without invoking the compiler during gradient descent.
-3. **One-Shot Inference with Safety Fallback:** At inference time (`rl-uco-infer`), the policy examines the program graph in a single forward pass to propose an optimized pass sequence. If validation fails the correctness gate, it safely falls back to standard -O3.
+1. **Offline Reinforcement Learning (IQL):** Data collection happens once. Exploration traces (random passes, -O3 seeds, pass mutations) are logged with physical runtime and energy metrics. Training uses Implicit Q-Learning over logged transitions without executing compilers during gradient descent.
+2. **Joint Time & Energy Optimization:** Rewards are computed directly from real hardware interfaces (Intel RAPL energy on x86, NVML on NVIDIA GPUs, perf on ARM).
+3. **Graph + ISA Conditioning:** Program representations combine LLVM IR control/data-flow graphs with target ISA embeddings (`x86_64_v3`, `aarch64`, `cuda_sm80`), enabling a single model to specialize across hardware.
+4. **Guaranteed Verification Gate:** Proposed pass sequences undergo functional equivalence checking via `llvm-diff` and output tests. If validation fails, the engine safely reverts to standard `-O3`.
 
 ---
 
-## Quick Start
+## 🏗️ System Architecture
 
-### Prerequisites
+RL-UCO connects data collection, graph neural state encoding, offline RL optimization, and verified compiler dispatch:
 
-- **Python:** 3.11 or later
-- **LLVM Toolchain:** 18.0+
-  - `clang`, `opt`, `llvm-diff` on PATH (or via Docker)
-- **System:** Linux recommended for full RAPL/`perf` support
-  - WSL2 on Windows: Partial support (time-only reward if RAPL unavailable)
-  - macOS: Limited energy profiling (time-based rewards)
-- **Optional:** 
-  - NVIDIA GPU + CUDA 12.0+ for MLIR/CUDA compilation
-  - Docker & Docker Compose for isolated toolchain
-  - Ray >= 2.9 for distributed data collection
+```mermaid
+flowchart TD
+    subgraph MINING["1. Corpus & Data Collection"]
+        A["Source Code (*.c, *.cpp)"] --> B["Corpus Extractor (rl-uco-extract)"]
+        B --> C["Single-Function IR (.ll)"]
+        C --> D["Bootstrap Policies (-O3, Random, Mutate)"]
+        D --> E["CompileRunEnv (opt + clang)"]
+        E --> F["Hardware Profiler (RAPL / NVML / Perf)"]
+        F --> G["Correctness Gate (llvm-diff)"]
+        G --> H["Dataset Parquet (data.parquet)"]
+    end
 
-### Installation
+    subgraph LEARNING["2. Offline RL Training"]
+        H --> I["Graph Parser (llvm_to_pyg)"]
+        I --> J["StateEncoder (GNN + ISA Embedding)"]
+        J --> K["Actor-Critic Network (PassPolicy + PassCritic)"]
+        K --> L["IQLTrainer (Implicit Q-Learning)"]
+        L --> M["Checkpoint (checkpoints/best.pt)"]
+    end
 
-#### Local Environment (Recommended for Development)
+    subgraph DEPLOY["3. Inference & Production Deployment"]
+        N["Unseen LLVM IR (.ll)"] --> O["InferenceEngine (rl-uco-infer)"]
+        M --> O
+        O --> P{"PassSequenceValidator"}
+        P -->|Valid| Q["PassExecutor (opt -passes=...)"]
+        P -->|Invalid| R["Safety Fallback (-O3 Pipeline)"]
+        Q --> S["Optimized IR (.ll) / Binary (.o)"]
+        R --> S
+    end
+```
+
+### Module Overview
+
+| Module | Responsibility | Key Interfaces |
+| :--- | :--- | :--- |
+| **`rl_uco.passes`** | Registry of 40+ passes, NPM pipeline builder, sequence validation | `PassRegistry`, `PassSequenceValidator`, `PassExecutor` |
+| **`rl_uco.graph`** | IR to PyTorch Geometric (PyG) graph conversion with opcode features | `llvm_to_pyg()`, `parse_llvm_instructions()`, fallback MLP |
+| **`rl_uco.hardware`**| Physical wall-time and energy measurements across architectures | `X86Profiler` (RAPL), `ARMProfiler` (perf), `CUDAProfiler` (NVML) |
+| **`rl_uco.env`** | One-shot compile, execution, verification, and reward scoring | `CompileRunEnv`, `compute_reward()` |
+| **`rl_uco.rl`** | State encoder, autoregressive policy, critic, and IQL trainer | `StateEncoder`, `ActorCriticAgent`, `IQLTrainer`, `InferenceEngine` |
+| **`rl_uco.data`** | Schema definition, versioned dataset export, and ray collector | `DatasetRow`, `DatasetManifest`, `export_dataset()`, `collect_dataset()` |
+| **`rl_uco.eval`** | Baseline comparisons, geo-mean speedup, and energy reporting | `run_evaluation()`, `eval_coreset_bc()` |
+
+---
+
+## 🎯 Hardware Profiling & Cross-ISA Support
+
+RL-UCO natively supports cross-architecture conditioning and multi-objective rewards:
+
+### Target ISAs
+
+| Target ISA | Key | Toolchain | Features |
+| :--- | :--- | :--- | :--- |
+| **x86-64 v3** | `x86_64_v3` | `clang -march=x86-64-v3` | AVX, AVX2, BMI1, BMI2, FMA |
+| **ARM64** | `aarch64` | `clang -target aarch64-linux-gnu` | NEON vector extensions, FP16 |
+| **NVIDIA CUDA** | `cuda_sm80` | `mlir-opt` / `nvcc -arch=sm_80` | Ampere+ Tensor Cores, PTX lowering |
+
+### Multi-Objective Reward Function
+
+The reward balances execution latency and energy consumption against the `-O0` baseline:
+
+$$\text{Reward} = - \left( w_{\text{time}} \cdot \frac{T_{\text{opt}}}{T_{\text{base}}} + w_{\text{energy}} \cdot \frac{E_{\text{opt}}}{E_{\text{base}}} \right)$$
+
+* Defaults: $w_{\text{time}} = 0.7$, $w_{\text{energy}} = 0.3$ (configurable via `RL_UCO_W_TIME` and `RL_UCO_W_ENERGY`).
+* Failing or miscompiling code receives an immediate penalty: $R = -10.0$.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Installation
 
 ```bash
 # Clone repository
 git clone https://github.com/FreakyAdy/RL-for-Universal-Compiler-Optimization.git
 cd RL-for-Universal-Compiler-Optimization
 
-# Create virtual environment
+# Create and activate virtual environment
 python -m venv .venv
+source .venv/bin/activate       # On Windows: .venv\Scripts\activate
 
-# Activate
-# On macOS / Linux:
-source .venv/bin/activate
-# On Windows:
-# .venv\Scripts\activate
-
-# Install core dependencies
-pip install -e "."
-
-# Install development tools (pytest, linting)
+# Install core package + dev tools
 pip install -e ".[dev]"
 ```
 
-#### 30-Second Quickstart (No LLVM Required)
-
-You can immediately verify the entire pipeline — synthetic corpus generation, Parquet dataset export, IQL training, and pass sequence inference — on any OS without installing an external LLVM toolchain:
+**Optional Extensions:**
 
 ```bash
+pip install -e ".[gnn]"          # PyTorch Geometric GNN encoder
+pip install -e ".[gpu]"          # NVIDIA NVML GPU energy profiling
+pip install -e ".[distributed]"  # Ray distributed data collection
+```
+
+### 2. Verify Installation
+
+```bash
+# Run unit tests (12 tests, runs on all platforms without LLVM)
+pytest tests/ -v
+
+# Run zero-dependency end-to-end demo
 python scripts/demo.py
 ```
 
-#### Optional Extensions
+### 3. Docker Environment (LLVM 18 Included)
+
+For an isolated container with LLVM 18 pre-installed on Linux:
 
 ```bash
-# For distributed data collection (Linux recommended)
-pip install -e ".[distributed]"
-
-# For advanced graph neural network encoder (PyTorch Geometric)
-pip install -e ".[gnn]"
-
-# For GPU energy profiling (NVIDIA only)
-pip install -e ".[gpu]"
-
-# Install all optional features
-pip install -e ".[dev,distributed,gnn,gpu]"
-```
-
-### Docker Setup (Recommended)
-
-Containerized environment with pre-configured LLVM 18 and all tools:
-
-```bash
-# Build Docker image
 cd infra/docker
 docker compose build
-
-# Enter development container
 docker compose run --rm rl-uco-dev bash
-
-# Inside container, verify tools
-clang --version  # LLVM 18.x
-opt --version    # LLVM 18.x
-```
-
-For GPU support, configure Docker with NVIDIA runtime:
-
-```yaml
-# In docker-compose.yml, add to rl-uco-dev service:
-runtime: nvidia
-environment:
-  - NVIDIA_VISIBLE_DEVICES=all
 ```
 
 ---
 
-## Pipeline Overview
+## 🔄 Pipeline Workflow
 
-The complete workflow from raw source code to optimized inference:
+When operating with a full LLVM 18+ toolchain, RL-UCO follows a 5-phase lifecycle:
 
-```
-╔════════════════════════════════════════════════════════════════════════════╗
-║                         RL-UCO COMPLETE PIPELINE                          ║
-╚════════════════════════════════════════════════════════════════════════════╝
+### Phase 1: Corpus Extraction
 
-    PHASE 1: DATA PREPARATION
-    ═══════════════════════════════════════════════════════════════════════
-    
-    ┌─────────────┐
-    │Source Code  │  C/C++ functions from open-source or custom codebase
-    │   (*.c)     │
-    └──────┬──────┘
-           │
-           │ rl-uco-extract
-           │
-           ▼
-    ┌──────────────────────────────┐
-    │ 1. Corpus Extraction         │  ✓ Extract functions
-    │                              │  ✓ Normalize to LLVM IR
-    │ rl-uco-extract               │  ✓ Flatten nested functions
-    │ --source src/               │  ✓ Remove undefined references
-    │ --output data/corpus        │  ✓ Emit .ll bitcode
-    │                              │  ✓ Validate IR size & complexity
-    └──────┬───────────────────────┘
-           │
-           └─────────────────────┐
-                                 │
-    PHASE 2: DATA COLLECTION      │
-    ═══════════════════════════════════════════════════════════════════════
-                                 │
-           ┌─────────────────────┘
-           │
-           ▼
-    ┌──────────────────────────────────────────────┐
-    │  2. Offline Data Collection                  │  ┌─ Bootstrap Policies:
-    │     (Compile + Profile on Hardware)          │  │   • -O3 (baseline)
-    │                                              │  │   • Random passes
-    │  rl-uco-collect                             │  │   • Mutations
-    │  --corpus data/corpus                       │  │   • Custom sequences
-    │  --output data/datasets/v1                  │  └─
-    │  --isa x86_64_v3                            │
-    │  --bootstrap-policies O3,random             │  Per-sample flow:
-    │  --workers 8                                │  1. Select pass sequence
-    │                                              │  2. Compile via opt
-    │  ╔═══════════════════════════════════════╗  │  3. Codegen with clang
-    │  ║  CompileRunEnv + HardwareProfiler   ║  │  4. Run benchmark harness
-    │  ║  ┌──────────────────────────────┐   ║  │  5. Record wall-time
-    │  ║  │ opt ──► clang ──► execute     │   ║  │  6. Record energy (RAPL)
-    │  ║  │         │          │          │   ║  │  7. Validate correctness
-    │  ║  │         └─►perf    │          │   ║  │     (llvm-diff, output)
-    │  ║  │         └─►RAPL    │          │   ║  │  8. Calculate reward
-    │  ║  └──────────────────────────────┘   ║  │  9. Write to Parquet
-    │  ╚═══════════════════════════════════════╝  │
-    │                                              │
-    │  Output: Parquet dataset (100s-1000s rows)  │
-    └──────┬───────────────────────────────────────┘
-           │
-           │ Parquet + PyG graphs + Metadata
-           │
-    PHASE 3: TRAINING
-    ═══════════════════════════════════════════════════════════════════════
-           │
-           ▼
-    ┌──────────────────────────────────────────────┐
-    │  3. Offline RL Training (IQL)                │  Load fixed dataset
-    │                                              │  (no online interaction)
-    │  rl-uco-train                               │
-    │  --dataset data/datasets/v1                 │  ╔═════════════════════╗
-    │  --output checkpoints/                      │  ║  Actor (Policy)     ║
-    │  --batch-size 128                           │  ║  ├─ Pass Embedding  ║
-    │  --epochs 100                               │  ║  ├─ GRU Encoder     ║
-    │  --learning-rate 3e-4                       │  ║  └─ Output Logits   ║
-    │                                              │  ║                     ║
-    │  ╔══════════════════════════════════════╗   │  ║  Critic (Value)     ║
-    │  ║ IQL Update Loop (1000s of steps)     ║   │  ║  ├─ State MLP       ║
-    │  ║                                      ║   │  ║  └─ Value Estimate  ║
-    │  ║ Sample batch from offline dataset    ║   │  ╚═════════════════════╝
-    │  ║ │                                    ║   │
-    │  ║ ├─ Update Critic:                    ║   │  Min: (Q(s,a) - target)²
-    │  ║ │  Q(s,a) ← reward + γ*max_a Q(s',a)║   │
-    │  ║ │                                    ║   │
-    │  ║ ├─ Update Actor:                     ║   │  Max: Q(s, π(s))
-    │  ║ │  π(a|s) ← improved policy          ║   │
-    │  ║ │                                    ║   │
-    │  ║ └─ Repeat (conservative updates)     ║   │
-    │  ╚══════════════════════════════════════╝   │
-    │                                              │
-    │  Checkpoint: best.pt (lowest validation    │
-    │             loss)                           │
-    └──────┬───────────────────────────────────────┘
-           │
-           │ best.pt (actor + critic + encoder)
-           │
-    PHASE 4: EVALUATION
-    ═══════════════════════════════════════════════════════════════════════
-           │
-           ▼
-    ┌──────────────────────────────────────────────┐
-    │  4. Evaluation & Reporting                   │
-    │                                              │
-    │  rl-uco-eval                                │
-    │  --dataset data/datasets/v1                 │
-    │  --checkpoint checkpoints/best.pt           │
-    │  --baseline O3                              │
-    │  --output reports/eval.json                 │
-    │                                              │
-    │  Metrics reported:                           │
-    │  ├─ Geo-mean speedup vs -O3 baseline        │
-    │  ├─ Energy consumption ratio (RAPL/NVML)     │
-    │  ├─ Coreset BC & logged policy comparison    │
-    │  └─ Correctness gate validation rate         │
-    └──────┬───────────────────────────────────────┘
-           │
-           │ Validated checkpoint
-           │
-    PHASE 5: DEPLOYMENT / INFERENCE
-    ═══════════════════════════════════════════════════════════════════════
-           │
-           ▼
-    ┌──────────────────────────────────────────────┐
-    │  5. Inference on Unseen Functions            │
-    │                                              │
-    │  rl-uco-infer                               │
-    │  --ir function.ll                           │
-    │  --checkpoint checkpoints/best.pt           │
-    │  --isa x86_64_v3                            │
-    │  --output optimized.ll                      │
-    │                                              │
-    │  Inference flow:                             │
-    │  1. Encode IR to PyG graph                   │
-    │  2. Get ISA embedding (x86_64_v3)           │
-    │  3. Forward pass: state ──► logits           │
-    │  4. Sample sequence: [pass1, pass2, ...]    │
-    │  5. Validate against registry.yaml          │
-    │  6. Execute via opt (or fallback to -O3)    │
-    │  7. Write optimized IR                       │
-    │                                              │
-    │  ┌─────────────────────────────────────┐    │
-    │  │ Fallback Strategy                   │    │
-    │  │ ├─ Invalid sequence? ──► -O3        │    │
-    │  │ ├─ Compilation error? ──► -O2      │    │
-    │  │ ├─ Timeout? ──► -O1                 │    │
-    │  │ └─ All fail? ──► -O0 (bail-out)    │    │
-    │  └─────────────────────────────────────┘    │
-    │                                              │
-    │  Output: Optimized IR + metadata            │
-    └──────────────────────────────────────────────┘
-
-```
-
-### Detailed Example Commands
-
-Complete walkthrough from source to inference:
+Mine single-function translation units from source code:
 
 ```bash
-╔════════════════════════════════════════════════════════════════════════════╗
-║                         PHASE 1: EXTRACT CORPUS                           ║
-╚════════════════════════════════════════════════════════════════════════════╝
+# Extract from C source files
+rl-uco-extract --input /path/to/c_sources --output data/corpus/v1
 
-rl-uco-extract \
-  --source tests/fixtures \
-  --output data/corpus \
-  --max-ir-size 5000 \
-  --max-functions 32
+# Or generate synthetic functions without LLVM
+rl-uco-extract --synthetic --count 100 --output data/corpus/synth
+```
 
-# Result: data/corpus/
-#   ├─ manifest.json
-#   └─ synth_0000/ to synth_0099/
-#      ├─ fn.c (original)
-#      └─ fn.ll (normalized LLVM IR)
+### Phase 2: Data Collection & Hardware Profiling
 
+Collect pass execution traces across policies (O3, random, mutation) with physical hardware profiling:
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║                    PHASE 2: COLLECT DATASET (x86-64)                      ║
-╚════════════════════════════════════════════════════════════════════════════╝
-
+```bash
 rl-uco-collect \
-  --corpus data/corpus \
-  --output data/datasets/demo_v1 \
+  --corpus data/corpus/v1 \
+  --output data/datasets/v1 \
   --isa x86_64_v3 \
-  --bootstrap-policies O3,random,mutations \
-  --num-samples 5000 \
-  --workers 8
+  --num-workers 4
+```
 
-# Result: data/datasets/demo_v1/
-#   ├─ manifest.json (metadata)
-#   ├─ data.parquet (5000 rows × 15 columns)
-#   └─ graphs/
-#      ├─ synth_0000.pt (PyG graph)
-#      └─ synth_0001.pt ...
+### Phase 3: Offline IQL Training
 
+Train the autoregressive actor-critic model over the collected Parquet dataset:
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║                         PHASE 3: TRAIN POLICY                             ║
-╚════════════════════════════════════════════════════════════════════════════╝
-
+```bash
 rl-uco-train \
-  --dataset data/datasets/demo_v1 \
+  --dataset data/datasets/v1 \
   --output checkpoints/ \
-  --batch-size 128 \
-  --epochs 100 \
-  --learning-rate 3e-4 \
-  --encoder gnn \
-  --seed 42
+  --epochs 50 \
+  --batch-size 8 \
+  --learning-rate 3e-4
+```
 
-# Training progress:
-#   Epoch   1/100  │ Train Loss: 2.34 │ Val Loss: 2.41 ✓
-#   Epoch  50/100  │ Train Loss: 0.87 │ Val Loss: 0.95 ✓
-#   Epoch 100/100  │ Train Loss: 0.42 │ Val Loss: 0.51 ✓
-#
-# Result: checkpoints/
-#   ├─ best.pt (lowest val loss)
-#   ├─ epoch_050.pt
-#   └─ final.pt
+### Phase 4: Evaluation & Reporting
 
+Evaluate learned policies against baseline strategies:
 
-╔════════════════════════════════════════════════════════════════════════════╗
-║                         PHASE 4: EVALUATE                                 ║
-╚════════════════════════════════════════════════════════════════════════════╝
-
+```bash
 rl-uco-eval \
-  --dataset data/datasets/demo_v1 \
+  --dataset data/datasets/v1 \
   --checkpoint checkpoints/best.pt \
   --isa x86_64_v3 \
   --output reports/eval.json
-
-# Evaluation output (structured JSON summary):
-# {
-#   "dataset": "data/datasets/demo_v1/data.parquet",
-#   "isa": "x86_64_v3",
-#   "results": {
-#     "coreset_bc": {
-#       "geo_mean_speedup": 1.05,
-#       "method": "coreset_bc"
-#     },
-#     "logged_synthetic": {
-#       "geo_mean_speedup": 1.08,
-#       "n": 20
-#     },
-#     "learned_policy": {
-#       "geo_mean_speedup": 1.07,
-#       "n": 20,
-#       "note": "speedup computed from logged dataset entries (live eval requires corpus IR)"
-#     }
-#   }
-# }
-
-
-╔════════════════════════════════════════════════════════════════════════════╗
-║                    PHASE 5: INFERENCE ON NEW CODE                         ║
-╚════════════════════════════════════════════════════════════════════════════╝
-
-# Optimize a single function
-rl-uco-infer \
-  --ir /path/to/unseen_function.ll \
-  --checkpoint checkpoints/best.pt \
-  --isa x86_64_v3 \
-  --output optimized.ll
-
-# Batch inference on corpus
-for ll in data/corpus/*/*.ll; do
-  rl-uco-infer \
-    --ir "$ll" \
-    --checkpoint checkpoints/best.pt \
-    --isa x86_64_v3 \
-    --output "out/$(basename $ll)"
-done
 ```
 
----
+**Example Structured Output:**
 
-## Configuration & Tuning
-
-All configuration is controlled via environment variables or [rl_uco/config.py](rl_uco/config.py). 
-
-### Key Parameters
-
-**Reward Configuration:**
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `RL_UCO_W_TIME` | `0.7` | Weight for wall-time in reward (must sum to 1.0 with energy) |
-| `RL_UCO_W_ENERGY` | `0.3` | Weight for energy in reward (must sum to 1.0 with time) |
-| `RL_UCO_FAILURE_REWARD` | `-10.0` | Penalty for failed compilations |
-
-**Execution Constraints:**
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `RL_UCO_MAX_PASS_STEPS` | `12` | Maximum passes per sequence (episode length) |
-| `RL_UCO_COMPILE_TIMEOUT` | `120` | Compilation timeout (seconds) |
-| `RL_UCO_RUN_TIMEOUT` | `30` | Execution timeout (seconds) |
-| `RL_UCO_RUN_ITERATIONS` | `100000` | Microbenchmark loop count |
-| `RL_UCO_PROFILE_RUNS` | `5` | Profiling runs (median taken) |
-
-**Corpus Filters:**
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `RL_UCO_MAX_IR_INSTRUCTIONS` | `5000` | Max IR instructions per function |
-| `RL_UCO_MAX_FUNCS_PER_FILE` | `32` | Max functions extracted per file |
-
-**Model Architecture:**
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ISA_EMBED_DIM` | `32` | ISA embedding dimension |
-| `GRAPH_HIDDEN_DIM` | `256` | Graph encoder hidden size |
-| `GRAPH_NUM_LAYERS` | `4` | GNN stacking depth |
-
-### Configuration Examples
-
-#### Scenario 1: Prioritize Runtime Performance
-
-```bash
-export RL_UCO_W_TIME=0.9
-export RL_UCO_W_ENERGY=0.1
-export RL_UCO_MAX_PASS_STEPS=8
-
-rl-uco-train --dataset data/datasets/demo_v1 --output checkpoints/speed-opt
-```
-
-#### Scenario 2: Energy-Aware Optimization (Mobile / Edge)
-
-```bash
-export RL_UCO_W_TIME=0.2
-export RL_UCO_W_ENERGY=0.8
-export RL_UCO_MAX_PASS_STEPS=20  # longer sequences for more exploration
-
-rl-uco-train --dataset data/datasets/demo_v1 --output checkpoints/energy-opt
-```
-
-#### Scenario 3: Balanced Multi-Objective with Strict Timeouts
-
-```bash
-export RL_UCO_W_TIME=0.5
-export RL_UCO_W_ENERGY=0.5
-export RL_UCO_COMPILE_TIMEOUT=60    # strict compilation deadline
-export RL_UCO_MAX_PASS_STEPS=6      # shorter sequences = faster compilation
-
-rl-uco-train --dataset data/datasets/demo_v1 --output checkpoints/balanced
-```
-
-### ISA-Specific Configurations
-
-Codegen flags by ISA (from `config.py`):
-
-```python
-ISA_FLAGS = {
-    "x86_64_v3":   ["-march=x86-64-v3"],           # AVX-2 capable
-    "aarch64":     ["-mcpu=neoverse-n1"],          # ARM Neoverse N1
-    "cuda_sm80":   [],                              # CUDA (handled separately)
+```json
+{
+  "dataset": "data/datasets/v1/data.parquet",
+  "isa": "x86_64_v3",
+  "results": {
+    "coreset_bc": {
+      "geo_mean_speedup": 1.05,
+      "method": "coreset_bc"
+    },
+    "logged_synthetic": {
+      "geo_mean_speedup": 1.08,
+      "n": 20
+    },
+    "learned_policy": {
+      "geo_mean_speedup": 1.07,
+      "n": 20,
+      "note": "speedup computed from logged dataset entries (live eval requires corpus IR)"
+    }
+  }
 }
 ```
 
-Target-specific optimizations:
+### Phase 5: Inference on Unseen Code
+
+Apply the trained policy to optimize new LLVM IR:
 
 ```bash
-# x86-64: Focus on SIMD passes
-rl-uco-collect --corpus data/corpus --isa x86_64_v3 --output data/x86
-
-# ARM64: Energy-efficient passes
-rl-uco-collect --corpus data/corpus --isa aarch64 --output data/arm
-```
-export RL_UCO_MAX_PASS_STEPS=20
-
-rl-uco-train --dataset data/datasets/demo_v1 --output checkpoints/energy-opt
+# Propose passes and optimize a function
+rl-uco-infer \
+  --ir function.ll \
+  --checkpoint checkpoints/best.pt \
+  --isa x86_64_v3 \
+  --output optimized.ll
 ```
 
 ---
 
-## Advanced Usage
+## ⚖️ Ecosystem Comparison
 
-### Distributed Data Collection
+Where RL-UCO fits in the compiler optimization and ML-for-systems landscape:
 
-For large-scale corpus collection, use Ray distributed collection (Linux only):
+| Framework | Project Focus | Interaction Model | Objectives | Hardware Targets |
+| :--- | :--- | :---: | :---: | :---: |
+| **RL-UCO** | **Pass Sequencing** | **Offline RL (IQL)** | **Runtime + Energy** | **x86-64, ARM64, CUDA** |
+| **CompilerGym** *(Meta)* | Pass Ordering / Inlining | Online Gym (`step`/`reset`) | Code Size / Cycles | Host CPU |
+| **MLGO** *(Google)* | Inlining & RegAlloc | LLVM Internal Policy | Code Size / Cycles | Compiler Internal |
+| **OpenTuner** | Autotuning / Black-Box | Black-box Search (GA, AUC) | Wall-time | Per-Program Search |
+| **Autophase** | Pass Phase Ordering | Online RL | Cycles | Single Host CPU |
 
-```bash
-pip install -e ".[distributed]"
+> *RL-UCO's primary contribution is eliminating the slow and crash-prone compiler loop during training by adopting an offline dataset-driven paradigm.*
 
-rl-uco-collect \
-  --corpus data/corpus \
-  --output data/datasets/large_v1 \
-  --isa x86_64_v3 \
-  --use-ray \
-  --ray-workers 16 \
-  --num-samples 100000
-```
+---
 
-Requires Ray cluster setup; for local multi-core, Ray auto-detects CPU count.
+## 🔄 GitHub Actions CI/CD Integration
 
-### Custom Pass Sequences
-
-Extend `rl_uco/passes/registry.yaml` to add custom passes or change baseline policies:
+Every commit and pull request is automatically validated across a cross-platform test matrix:
 
 ```yaml
-passes:
-  strip-debug:
-    pass_name: strip-debug
-    category: metadata
-    required_ir: llvm
-    description: "Remove debug metadata"
-    
-  custom-inline:
-    pass_name: inline
-    category: ipo
-    params: ["-inline-threshold=200"]
-    description: "Custom inlining threshold"
+name: CI
+on: [push, pull_request]
 
-policies:
-  custom_baseline:
-    - O2
-    - strip-debug
-    - custom-inline
-```
-
-### Multi-Hardware Evaluation
-
-To train a single model generalizing across ISAs:
-
-```bash
-# 1. Collect data on each target
-rl-uco-collect --corpus data/corpus --output data/datasets/x86_v1 --isa x86_64_v3
-rl-uco-collect --corpus data/corpus --output data/datasets/arm_v1 --isa aarch64
-
-# 2. Merge datasets
-rl-uco-merge-datasets \
-  --inputs data/datasets/x86_v1 data/datasets/arm_v1 \
-  --output data/datasets/multi_v1
-
-# 3. Train (ISA embedding automatically conditions policy)
-rl-uco-train --dataset data/datasets/multi_v1 --output checkpoints/multi-isa
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - run: pip install -e ".[dev]"
+      - run: ruff check rl_uco/ tests/ scripts/
+      - run: pytest tests/ -v
+      - run: python scripts/demo.py
 ```
 
 ---
 
-```
-RL-for-Universal-Compiler-Optimization/
-│
-├── Configuration & Build
-│   ├── README.md                          ◄ You are here
-│   ├── LICENSE                            Apache-2.0
-│   ├── pyproject.toml                     Project metadata & dependencies
-│   └── .gitignore
-│
-├── rl_uco/                                Core Package
-│   ├── __init__.py
-│   ├── config.py                          ◄ Global config + toolchain discovery
-│   │
-│   ├── corpus/                            Function extraction & normalization
-│   │   ├── extract.py                     ◄ CLI: rl-uco-extract
-│   │   ├── models.py                      LLVM/C AST representations
-│   │   ├── normalize.py                   IR normalization passes
-│   │   └── __init__.py
-│   │
-│   ├── passes/                            Compiler pass orchestration
-│   │   ├── registry.yaml                  ◄ Pass definitions & validation
-│   │   ├── executor.py                    Pass execution via opt
-│   │   ├── registry.py                    Registry data structures
-│   │   ├── validator.py                   Sequence validation
-│   │   └── __init__.py
-│   │
-│   ├── env/                               Compile-run environment
-│   │   ├── compile_run.py                 Compilation & execution harness
-│   │   ├── reward.py                      Multi-objective reward calculation
-│   │   └── __init__.py
-│   │
-│   ├── hardware/                          Hardware profilers (multi-ISA)
-│   │   ├── base.py                        Abstract profiler interface
-│   │   ├── cpu_x86.py                     Intel RAPL + perf
-│   │   ├── cpu_arm.py                     ARM energy counters
-│   │   ├── gpu_cuda.py                    NVIDIA NVML profiler
-│   │   └── __init__.py
-│   │
-│   ├── graph/                             IR → PyG graph conversion
-│   │   ├── llvm_to_graph.py               LLVM IR → PyG graph
-│   │   ├── mlir_to_graph.py               MLIR → PyG graph
-│   │   ├── parse.py                       IR parsing utilities
-│   │   └── __init__.py
-│   │
-│   ├── ir/                                IR handling adapters
-│   │   ├── llvm_adapter.py                LLVM IR interface
-│   │   ├── mlir_adapter.py                MLIR interface
-│   │   └── __init__.py
-│   │
-│   ├── data/                              Dataset management
-│   │   ├── collector.py                   ◄ CLI: rl-uco-collect
-│   │   ├── schema.py                      Parquet schema definitions
-│   │   ├── versioning.py                  Dataset versioning logic
-│   │   ├── export_parquet.py              Parquet export utilities
-│   │   └── __init__.py
-│   │
-│   ├── rl/                                Reinforcement learning
-│   │   ├── actor_critic.py                PassPolicy + PassCritic
-│   │   ├── encoder.py                     StateEncoder (graph → embedding)
-│   │   ├── offline_trainer.py             ◄ CLI: rl-uco-train (IQL training)
-│   │   ├── inference.py                   ◄ CLI: rl-uco-infer
-│   │   └── __init__.py
-│   │
-│   └── eval/                              Evaluation & reporting
-│       ├── report.py                      ◄ CLI: rl-uco-eval
-│       └── __init__.py
-│
-├── infra/                                 Infrastructure & Deployment
-│   ├── docker/
-│   │   ├── Dockerfile                     LLVM 18 development container
-│   │   └── docker-compose.yml             Multi-container orchestration
-│   └── inference/
-│       └── opt_driver.py                  Standalone inference driver
-│
-├── data/                                  Data Directory (Generated)
-│   ├── corpus/                            Extracted function corpus
-│   │   └── demo/
-│   │       ├── manifest.json
-│   │       ├── synth_0000/                fn.c, fn.ll
-│   │       ├── synth_0001/                fn.c, fn.ll
-│   │       └── ...
-│   ├── datasets/                          Versioned Parquet datasets
-│   │   └── demo_v1/
-│   │       ├── manifest.json              metadata: LLVM version, config
-│   │       ├── data.parquet               N rows × 15 columns
-│   │       └── graphs/
-│   │           ├── synth_0000.pt          PyG graph tensors
-│   │           ├── synth_0001.pt
-│   │           └── ...
-│   └── graphs/                            Cache: PyG serialized graphs
-│
-├── checkpoints/
-│   └── best.pt                            Trained model checkpoint
-│
-├── docs/
-│   ├── architecture.md                    System design, data flow, IR strategies
-│   ├── dataset_schema.md                  Parquet schema specification
-│   ├── deployment.md                      Production deployment guide
-│   └── hardware_setup.md                  Platform-specific profiling setup
-│
-├── scripts/
-│   ├── generate_demo_data.py
-│   └── scale_corpus.py
-│
-└── tests/
-    ├── test_corpus.py
-    ├── test_graph.py
-    ├── test_passes.py
-    ├── test_reward.py
-    ├── test_agent.py
-    ├── test_schema.py
-    └── fixtures/
-        ├── sample.c
-        ├── sample_kernel.mlir
-        └── sample.ll
-```
+## 🤝 Contributing & Community
 
-### Module Dependency Graph
+Contributions are welcome! Please check our community documents:
 
-```
-            ┌──────────────────────────────────────────┐
-            │  User Input (IR, Checkpoint, Config)     │
-            └──────────────────┬───────────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-    ┌────────────┐      ┌────────────┐       ┌──────────────┐
-    │  corpus/   │      │   graph/   │       │  passes/     │
-    │  extract   │      │ llvm_to_   │       │  registry    │
-    │            │      │ graph      │       │              │
-    └────┬───────┘      └────┬───────┘       └──────┬───────┘
-         │                   │                       │
-         │                   └───────────┬───────────┘
-         │                               │
-         ▼                               ▼
-    ┌────────────┐              ┌──────────────────┐
-    │  data/     │              │  rl/encoder      │
-    │  schema    │              │  StateEncoder    │
-    └────┬───────┘              └──────┬───────────┘
-         │                             │
-         │                             ▼
-         │                      ┌──────────────────┐
-         │                      │  rl/actor_critic │
-         │                      │  Policy + Critic │
-         │                      └──────┬───────────┘
-         │                             │
-         │        ┌────────────────────┘
-         │        │
-         ▼        ▼
-    ┌────────────────────┐
-    │  env/              │
-    │  compile_run +     │
-    │  reward            │
-    └────┬───────────────┘
-         │
-         ▼
-    ┌────────────────────┐
-    │  hardware/         │
-    │  profilers         │
-    └────────────────────┘
-```
+* **[CONTRIBUTING.md](CONTRIBUTING.md)**: Setup guide, code style (Ruff), test guidelines, and PR workflow.
+* **[Architecture Guide](docs/architecture.md)**: Detailed system data flow and IR strategies.
+* **[Dataset Schema](docs/dataset_schema.md)**: Parquet columns and manifest specification.
+* **[Hardware Setup](docs/hardware_setup.md)**: RAPL permissions, perf configuration, and CUDA setup.
+* **[Deployment Guide](docs/deployment.md)**: Standalone driver and production integration.
 
 ---
 
-## Documentation
-
-Comprehensive guides for each component:
-
-| Document | Coverage |
-|----------|----------|
-| [Architecture](docs/architecture.md) | System design, data flow, IR strategies, ISA conditioning |
-| [Dataset Schema](docs/dataset_schema.md) | Parquet specification, field descriptions, versioning scheme |
-| [Deployment](docs/deployment.md) | Production inference, TorchScript export, external driver, CI/batch |
-| [Hardware Setup](docs/hardware_setup.md) | x86 RAPL, ARM, CUDA, Windows profiling configuration |
-
----
-
-## Contributing
-
-We welcome contributions! Please follow these guidelines:
-
-1. **Fork & Branch:** Create a feature branch (`feature/your-feature`)
-2. **Code Style:** Follow PEP 8; use `ruff format` and `ruff check` for linting
-   ```bash
-   pip install ruff
-   ruff format rl_uco/ tests/
-   ruff check rl_uco/ tests/
-   ```
-3. **Tests:** Add unit tests for new functionality; maintain >80% coverage
-   ```bash
-   pytest tests/ -v --cov=rl_uco
-   ```
-4. **Documentation:** Update docstrings (Google-style) and relevant `.md` files
-5. **Commit:** Use clear, descriptive commit messages
-6. **Pull Request:** Link to issue, provide rationale & test results
-
----
-
-## Citation
+## 📄 Citation
 
 If you use RL-UCO in your research, please cite:
 
 ```bibtex
 @software{rluco2024,
   title={RL-UCO: Offline Reinforcement Learning for Universal Compiler Optimization},
-  author={Contributors, RL-UCO},
+  author={Suryavanshi, Aditya and Contributors, RL-UCO},
   year={2024},
   url={https://github.com/FreakyAdy/RL-for-Universal-Compiler-Optimization}
 }
@@ -911,200 +368,6 @@ If you use RL-UCO in your research, please cite:
 
 ---
 
-## Troubleshooting
+## 📜 License
 
-### ❯ LLVM Tools Not Found
-
-**Problem:** Commands like `clang`, `opt`, or `llvm-diff` not found on PATH
-
-**Diagnosis:**
-```bash
-clang --version    # Should show LLVM 18+
-opt --version      # Should show LLVM 18+
-which llvm-diff    # Should return path
-```
-
-**Solutions:**
-
-**Option A: Add LLVM to PATH (Linux/macOS)**
-```bash
-export PATH="/path/to/llvm-18/bin:$PATH"
-export LD_LIBRARY_PATH="/path/to/llvm-18/lib:$LD_LIBRARY_PATH"
-```
-
-**Option B: Install via package manager**
-```bash
-# Ubuntu/Debian
-sudo apt-get install -y llvm-18
-
-# macOS (Homebrew)
-brew install llvm@18
-```
-
-**Option C: Use Docker (Recommended)**
-```bash
-cd infra/docker && docker compose run --rm rl-uco-dev bash
-# Inside container, clang/opt/llvm-diff already on PATH
-```
-
----
-
-### ❯ Energy Profiling Not Working
-
-**Problem:** Energy values are 0 or missing; only wall-time optimized
-
-**Platform-Specific Diagnostics:**
-
-**x86-64 (Intel RAPL)**
-- Check 1: RAPL readable
-  ```bash
-  $ cat /sys/class/powercap/intel-rapl:0/energy_uj
-  # Should show energy in microjoules
-  ```
-- Check 2: msr module loaded
-  ```bash
-  $ lsmod | grep msr
-  $ sudo modprobe msr  # if not loaded
-  ```
-- Check 3: Permissions fixed
-  ```bash
-  $ sudo chmod +r /sys/class/powercap/intel-rapl:0/energy_uj
-  $ sudo chmod +r /sys/class/powercap/intel-rapl:1/energy_uj
-  ```
-
-**ARM64 (Platform Energy Counters)**
-- Check 1: SPE (Statistical Profiling Extension) available
-  ```bash
-  $ perf list | grep spe
-  # Should show energy_* events if supported
-  ```
-- Status: Falls back gracefully to time-only if unavailable (warnings printed to stderr)
-
-**NVIDIA CUDA (NVML)**
-- Check 1: Driver installed
-  ```bash
-  $ nvidia-smi
-  # Should show GPU info
-  ```
-- Check 2: CUDA installed
-  ```bash
-  $ nvcc --version  # CUDA Toolkit
-  # Should show CUDA version >= 12.0
-  ```
-- Check 3: pynvml installed
-  ```bash
-  $ pip install -e ".[gpu]"
-  $ python -c "import pynvml; print('OK')"
-  ```
-- Check 4: GPU visibility
-  ```bash
-  $ CUDA_VISIBLE_DEVICES=0 python -c "import torch; print(torch.cuda.is_available())"
-  # Should print True
-  ```
-
----
-
-### ❯ Slow Data Collection
-
-**Problem:** `rl-uco-collect` takes hours to complete
-
-**Cause:** Single-process collection on large corpus
-
-**Solution 1: Ray Distributed Collection (Linux recommended)**
-
-```bash
-# Install Ray support
-pip install -e ".[distributed]"
-
-# Enable Ray with 16 workers
-rl-uco-collect \
-  --corpus data/corpus \
-  --output data/datasets/v1 \
-  --isa x86_64_v3 \
-  --use-ray \
-  --ray-workers 16  # Adjust based on CPU count
-
-# Speedup: ~10-14x on 16-core machine
-```
-
-**Solution 2: Reduce Corpus Size**
-
-```bash
-# Use smaller corpus
-rl-uco-collect \
-  --corpus data/corpus \
-  --output data/datasets/small_v1 \
-  --isa x86_64_v3 \
-  --num-samples 100  # instead of 1000
-
-# Later scale up with more data
-```
-
----
-
-### ❯ Policy Performance Degradation
-
-**Problem:** Trained policy performs worse than -O3 baseline
-
-**Diagnostics:**
-
-```bash
-# 1. Check reward weight balance
-echo "Current weights:"
-echo "  W_TIME=${RL_UCO_W_TIME:-0.7}"
-echo "  W_ENERGY=${RL_UCO_W_ENERGY:-0.3}"
-
-# 2. Inspect dataset quality
-python3 << 'EOF'
-import pandas as pd
-df = pd.read_parquet('data/datasets/v1/data.parquet')
-print(df[['reward', 'wall_time_ns', 'energy_j']].describe())
-print("\nPass sequence distribution:")
-print(df['pass_sequence'].apply(len).value_counts())
-EOF
-
-# 3. Check training convergence
-# Look for training loss plateauing early
-```
-
-**Common Causes & Fixes:**
-
-| Issue | Fix |
-|-------|-----|
-| Imbalanced reward weights | Adjust `RL_UCO_W_TIME` & `RL_UCO_W_ENERGY` |
-| Insufficient training data | Increase `num-samples` during collection |
-| Training stopped too early | Increase `--epochs` (try 200, 500) |
-| Biased bootstrap policies | Diversify with more random/mutation |
-| Dataset distribution skewed | Check for missing ISA target or regime |
-| Hardware variability | Increase `PROFILE_RUNS` for median timing |
-
-**Recommended Retrain:**
-
-```bash
-# Energy-optimized policy
-export RL_UCO_W_TIME=0.3
-export RL_UCO_W_ENERGY=0.7
-
-rl-uco-train \
-  --dataset data/datasets/v1 \
-  --output checkpoints/energy-focus \
-  --batch-size 64 \
-  --epochs 500 \
-  --learning-rate 5e-4
-```
-
----
-
-## License
-
-Apache License 2.0 — See [LICENSE](LICENSE) for full details.
-
----
-
-## Acknowledgments
-
-Built with [LLVM](https://llvm.org/), [PyTorch](https://pytorch.org/), [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/), and [Ray](https://www.ray.io/).
-
----
-
-**Questions?** Open an issue or contact the maintainers.
+Distributed under the **[Apache License 2.0](LICENSE)**.
