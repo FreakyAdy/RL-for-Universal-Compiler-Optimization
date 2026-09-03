@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from rl_uco.config import GRAPH_HIDDEN_DIM
 from rl_uco.rl.encoder import StateEncoder

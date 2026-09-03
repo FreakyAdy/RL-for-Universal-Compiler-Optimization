@@ -21,7 +21,7 @@ from rl_uco.rl.encoder import ISAEmbedding
 class OfflinePassDataset(Dataset):
     def __init__(self, parquet_path: Path, graph_dir: Path):
         self.df = load_parquet(parquet_path)
-        self.df = self.df[self.df["correct"] == True]  # noqa: E712
+        self.df = self.df[self.df["correct"]]
         self.graph_dir = graph_dir
         self.registry = load_registry()
         self.pass_id_to_idx = {0: 0}
@@ -211,8 +211,7 @@ def main(
         for ep in range(epochs):
             metrics = trainer.train_epoch(loader)
             click.echo(f"epoch {ep + 1}/{epochs}: {metrics}")
-            if metrics["loss"] < best_loss:
-                best_loss = metrics["loss"]
+            best_loss = min(best_loss, metrics["loss"])
     output.mkdir(parents=True, exist_ok=True)
     ckpt = output / "best.pt"
     torch.save({"model": agent.state_dict(), "num_actions": num_actions}, ckpt)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from rl_uco.config import GRAPH_HIDDEN_DIM, GRAPH_NUM_LAYERS, ISA_EMBED_DIM, ISA_REGISTRY, NUM_ISAS
 

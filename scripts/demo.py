@@ -133,9 +133,7 @@ def main() -> None:
     print()
     print("Next steps:")
     print("  - With LLVM 18+: use real corpus with `rl-uco-extract` + `rl-uco-collect`")
-    print(
-        "  - Evaluate: `rl-uco-eval --dataset data/datasets/demo_v1 --checkpoint checkpoints/best.pt`"
-    )
+    print("  - Evaluate: `rl-uco-eval --dataset data/datasets/demo_v1`")
     print("  - Inference: `rl-uco-infer --ir <file.ll> --checkpoint checkpoints/best.pt`")
     print("=" * 60)
 
