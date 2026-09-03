@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from rl_uco.data.schema import DatasetManifest, rows_to_dataframe, DatasetRow
+from rl_uco.data.schema import DatasetManifest, DatasetRow, rows_to_dataframe
 
 
 def export_dataset(

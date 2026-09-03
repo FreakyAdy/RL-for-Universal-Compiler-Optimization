@@ -1,4 +1,4 @@
-from rl_uco.data.schema import DatasetRow, DatasetManifest
+from rl_uco.data.schema import DatasetManifest, DatasetRow
 
 __all__ = ["DatasetRow", "DatasetManifest", "collect_dataset"]
 

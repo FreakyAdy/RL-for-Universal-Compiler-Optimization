@@ -9,8 +9,8 @@ import click
 import torch
 
 from rl_uco.config import Toolchain
-from rl_uco.graph.parse import OPCODES
 from rl_uco.graph.llvm_to_graph import llvm_to_pyg
+from rl_uco.graph.parse import OPCODES
 from rl_uco.passes.executor import PassExecutor
 from rl_uco.passes.registry import PassAction, load_registry
 from rl_uco.passes.validator import PassSequenceValidator

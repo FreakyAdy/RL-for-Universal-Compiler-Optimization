@@ -5,8 +5,8 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from rl_uco.corpus.models import FunctionRecord
 from rl_uco.config import MAX_IR_INSTRUCTIONS
+from rl_uco.corpus.models import FunctionRecord
 
 
 def _bitcode_hash(ir_path: Path) -> str:

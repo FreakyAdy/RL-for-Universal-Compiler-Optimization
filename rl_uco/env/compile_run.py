@@ -14,7 +14,6 @@ from rl_uco.ir.llvm_adapter import LLVMAdapter
 from rl_uco.passes.executor import PassExecutor
 from rl_uco.passes.registry import PassAction, PassRegistry, load_registry
 
-
 HARNESS_C = """
 #include <stdint.h>
 extern int {fn}(void);

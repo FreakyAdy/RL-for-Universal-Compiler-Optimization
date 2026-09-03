@@ -1,6 +1,6 @@
 """Tests for pass registry and validator."""
 
-from rl_uco.passes.registry import load_registry, PassAction
+from rl_uco.passes.registry import PassAction, load_registry
 from rl_uco.passes.validator import PassSequenceValidator
 
 
