@@ -1,6 +1,6 @@
 # RL for Universal Compiler Optimization (RL-UCO)
 
-> A production-ready offline reinforcement learning framework for learning compiler pass selection strategies that minimize **runtime and energy consumption** across diverse hardware architectures.
+> An open-source research framework for offline reinforcement learning (IQL) over compiler pass selection strategies to optimize **runtime and energy consumption** across diverse hardware architectures.
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue?style=flat&logo=python)](https://www.python.org/downloads/)
@@ -8,39 +8,40 @@
 
 ## Overview
 
-**RL-UCO** learns to automatically optimize compiler pass sequences for unseen functions and target ISAs by leveraging offline reinforcement learning. Rather than relying on hand-crafted heuristics or static pass orderings, the system trains an agent on historical compile-run traces to predict high-performance pass pipelines tailored to specific program structures and hardware targets.
+**RL-UCO** explores learning compiler pass sequences for unseen functions and target ISAs using offline reinforcement learning. Rather than relying solely on hand-crafted heuristics or fixed optimization levels (-O2/-O3), the framework trains an actor-critic agent on pre-collected compile-run traces to predict effective pass pipelines conditioned on program graph structure and hardware target.
 
 ```
 Traditional Compiler Optimization         RL-UCO Approach
 ═════════════════════════════════════════ ════════════════════════════════════════
 
-  Hand-crafted pass orderings               Learned pass selection from data
-  Static -O0 / -O2 / -O3 levels             Dynamic, context-aware optimization
-  Fixed per-architecture tuning             Cross-ISA generalization
+  Hand-crafted pass orderings               Learned pass selection from offline data
+  Static -O0 / -O2 / -O3 levels             Context-aware pass sequence proposal
+  Fixed per-architecture tuning             Cross-ISA learned conditioning
   Binary outcomes (compile/fail)            Multi-objective (time + energy)
 ```
 
-### Key Innovations
+### Key Capabilities
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ ✓ Multi-Objective Optimization                                              │
-│   Joint minimization of wall-time and energy (real hardware profiling via   │
-│   RAPL, NVML, ARM counters)                                                 │
+│ ✓ Multi-Objective Profiling                                                 │
+│   Joint measurement of wall-time and energy via hardware interfaces         │
+│   (Intel RAPL sysfs on x86-64, NVML on NVIDIA GPUs, perf on Linux)          │
 │                                                                             │
-│ ✓ Cross-ISA Generalization                                                  │
-│   Single trained model handles x86-64, ARM64, and NVIDIA CUDA targets      │
+│ ✓ Cross-ISA Conditioning                                                    │
+│   Learned ISA embeddings condition the policy for x86-64, ARM64, and CUDA   │
 │                                                                             │
-│ ✓ Offline Learning                                                          │
-│   Trains on pre-collected datasets without online interaction; suitable     │
-│   for regulated production environments                                     │
+│ ✓ Offline Reinforcement Learning (IQL)                                      │
+│   Trains on logged execution datasets via Implicit Q-Learning without an    │
+│   interactive compiler-in-the-loop, avoiding compile crashes and latency   │
+│   during training                                                           │
 │                                                                             │
 │ ✓ Graph-Based State Representation                                          │
-│   Encodes LLVM/MLIR IR as heterogeneous program dependence graphs (PDGs)   │
-│   for robust feature extraction                                             │
+│   Encodes LLVM IR as program graphs with opcode features for GNN / MLP      │
+│   state representation                                                      │
 │                                                                             │
-│ ✓ Correctness Guarantee                                                     │
-│   Built-in validation against functional equivalence and runtime output    │
-│   correctness                                                               │
+│ ✓ Correctness Verification Gate                                             │
+│   Validation via llvm-diff functional comparison and runtime output checks  │
+│   with automatic fallback to -O3                                            │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ---
@@ -148,8 +149,19 @@ Normalized Reward
           Weighted Sum
           [0.0 ... 1.0]
           
-(Configurable via environment variables)
-```
+### Design Philosophy: Why Offline RL?
+
+Prior work in machine-learning-guided compilation (e.g., interactive gym environments) frequently structures pass ordering as an **online sequential environment**, where an agent takes actions through a live `step()`/`reset()` loop, invoking compiler passes, linking executables, and profiling hardware at each step during policy training.
+
+While conceptually familiar, live online compiler loops present severe operational hurdles:
+- **Compiler Latency:** Executing `opt`, `clang`, and benchmark runs in the innermost training loop slows policy optimization by orders of magnitude compared to standard simulation environments.
+- **Worker Instability:** Intermediate or malformed pass sequences can crash the compiler toolchain or trigger infinite optimization loops, stalling distributed training workers.
+- **Hardware Measurement Noise:** Profiling physical execution time and RAPL energy during active model training is vulnerable to thermal throttling and system interference.
+
+**RL-UCO adopts an Offline Reinforcement Learning (IQL) paradigm:**
+1. **Decoupled Data Collection:** Bootstrap policies (-O3, random sampling, pass sequence mutations) run during dataset collection (`rl-uco-collect`), recording execution times, hardware energy, and correctness into versioned Parquet logs alongside precomputed graph embeddings.
+2. **Fast Offline Policy Learning:** Implicit Q-Learning (IQL) trains the actor-critic network purely over static dataset traces without invoking the compiler during gradient descent.
+3. **One-Shot Inference with Safety Fallback:** At inference time (`rl-uco-infer`), the policy examines the program graph in a single forward pass to propose an optimized pass sequence. If validation fails the correctness gate, it safely falls back to standard -O3.
 
 ---
 
@@ -191,6 +203,14 @@ pip install -e "."
 
 # Install development tools (pytest, linting)
 pip install -e ".[dev]"
+```
+
+#### 30-Second Quickstart (No LLVM Required)
+
+You can immediately verify the entire pipeline — synthetic corpus generation, Parquet dataset export, IQL training, and pass sequence inference — on any OS without installing an external LLVM toolchain:
+
+```bash
+python scripts/demo.py
 ```
 
 #### Optional Extensions
@@ -345,13 +365,13 @@ The complete workflow from raw source code to optimized inference:
     │  --dataset data/datasets/v1                 │
     │  --checkpoint checkpoints/best.pt           │
     │  --baseline O3                              │
-    │  --output reports/                          │
+    │  --output reports/eval.json                 │
     │                                              │
-    │  Results:                                    │
-    │  ├─ Mean speedup vs -O3: 1.23x              │
-    │  ├─ Energy reduction: 15%                    │
-    │  ├─ Statistical significance: p < 0.01      │
-    │  └─ Failure rate: 0.2% (with fallback)      │
+    │  Metrics reported:                           │
+    │  ├─ Geo-mean speedup vs -O3 baseline        │
+    │  ├─ Energy consumption ratio (RAPL/NVML)     │
+    │  ├─ Coreset BC & logged policy comparison    │
+    │  └─ Correctness gate validation rate         │
     └──────┬───────────────────────────────────────┘
            │
            │ Validated checkpoint
@@ -464,19 +484,29 @@ rl-uco-train \
 rl-uco-eval \
   --dataset data/datasets/demo_v1 \
   --checkpoint checkpoints/best.pt \
-  --baseline O3 \
-  --output reports/
+  --isa x86_64_v3 \
+  --output reports/eval.json
 
-# Evaluation report: reports/eval_report.md
-#
-#   ┌─────────────────────────────────────┐
-#   │ RL-UCO vs -O3 Baseline              │
-#   ├─────────────────────────────────────┤
-#   │ Mean Speedup:        1.27x (±0.12)  │
-#   │ Energy Reduction:    18.3% (±2.1%)  │
-#   │ Success Rate:        99.8%          │
-#   │ Statistical Sig:     p < 0.001      │
-#   └─────────────────────────────────────┘
+# Evaluation output (structured JSON summary):
+# {
+#   "dataset": "data/datasets/demo_v1/data.parquet",
+#   "isa": "x86_64_v3",
+#   "results": {
+#     "coreset_bc": {
+#       "geo_mean_speedup": 1.05,
+#       "method": "coreset_bc"
+#     },
+#     "logged_synthetic": {
+#       "geo_mean_speedup": 1.08,
+#       "n": 20
+#     },
+#     "learned_policy": {
+#       "geo_mean_speedup": 1.07,
+#       "n": 20,
+#       "note": "speedup computed from logged dataset entries (live eval requires corpus IR)"
+#     }
+#   }
+# }
 
 
 ╔════════════════════════════════════════════════════════════════════════════╗

@@ -22,3 +22,13 @@ A learned embedding concatenates with the graph embedding. Supported ISAs: `x86_
 ## Correctness
 
 Every sample must compile and pass `llvm-diff` (when reference IR exists) or runtime output check against `-O0` baseline.
+
+## Offline RL Paradigm (vs. Interactive Compiler Gyms)
+
+Traditional compiler RL environments operate as interactive Gyms where an agent executes step-by-step actions through a `step()`/`reset()` loop, invoking compiler passes, compiling to native binary, and profiling hardware at each step during training.
+
+RL-UCO adopts an **offline reinforcement learning** design:
+1. **Decoupled Data Mining:** Exploration policies (-O3 seeds, random valid passes, pass mutations) run once during collection (`rl-uco-collect`), recording execution traces, hardware metrics, and functional correctness into versioned Parquet logs and precomputed PyG graphs.
+2. **Fast Offline Policy Optimization:** Implicit Q-Learning (IQL) trains the actor-critic network purely over static datasets without touching the compiler during gradient descent.
+3. **One-Shot Inference with Fallback:** At inference time (`rl-uco-infer`), the trained policy evaluates the program graph in a single forward pass to propose a complete pass sequence, validated through a correctness gate before execution.
+
